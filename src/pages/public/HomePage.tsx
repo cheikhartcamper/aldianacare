@@ -157,15 +157,23 @@ export function HomePage() {
             >
               <div className="relative">
                 <div
-                  className="w-full h-96 bg-gradient-to-br from-primary to-primary-dark rounded-3xl flex items-center justify-center overflow-hidden"
-                  style={{ borderLeft: '4px solid #F2C94C', borderRight: '4px solid #F2C94C' }}
+                  className="w-full rounded-3xl overflow-hidden shadow-2xl"
+                  style={{ border: '3px solid #F2C94C' }}
                 >
-                  <div className="text-center text-white p-8">
-                    <div className="w-20 h-20 mx-auto mb-6 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                      <Shield size={36} className="text-white" />
+                  {/* Image */}
+                  <img
+                    src="/care.png"
+                    alt="Famille protégée"
+                    className="w-full h-[450px] object-cover object-top"
+                  />
+                  
+                  {/* Text section - solid green below image */}
+                  <div className="bg-gradient-to-br from-primary to-primary-dark p-6 text-center text-white">
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                      <Shield size={22} className="text-gold" />
+                      <h3 className="text-xl font-bold">Protection Mondiale</h3>
                     </div>
-                    <h3 className="text-2xl font-bold mb-2">Protection Mondiale</h3>
-                    <p className="text-white/70">25+ pays couverts en Afrique et en Europe</p>
+                    <p className="text-white/70 text-sm">25+ pays couverts en Afrique et en Europe</p>
                   </div>
                 </div>
 
