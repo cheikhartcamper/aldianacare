@@ -108,12 +108,13 @@ export function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link to="/inscription">
-                  <Button variant="primary" size="lg" icon={<ArrowRight size={18} />}>
+                  <Button size="lg" variant="gold" className="group shadow-lg hover:shadow-xl transition-all">
                     Souscrire maintenant
+                    <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Link to="/comment-ca-marche">
-                  <Button variant="outline" size="lg">
+                  <Button size="lg" variant="outline" className="hover:border-primary hover:text-primary transition-all">
                     Comment ça marche
                   </Button>
                 </Link>

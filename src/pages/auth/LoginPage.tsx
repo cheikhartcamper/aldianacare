@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Star } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Input, Logo } from '@/components/ui';
 
@@ -50,6 +50,14 @@ export function LoginPage() {
           <div className="lg:hidden mb-8">
             <Logo size="md" variant="color" />
           </div>
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary mb-6 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Retour à l'accueil
+          </Link>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion</h1>
           <p className="text-sm text-gray-500 mb-8">Accédez à votre espace personnel Aldiana Care.</p>

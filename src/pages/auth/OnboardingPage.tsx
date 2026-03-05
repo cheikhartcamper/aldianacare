@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Phone, FileText, Camera, Shield, Heart, Gift,
@@ -28,7 +28,18 @@ export function OnboardingPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-100 py-4 px-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Logo size="md" variant="color" />
+          <div className="flex items-center gap-4">
+            <Logo size="md" variant="color" />
+            {step === 0 && (
+              <Link
+                to="/"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary transition-colors"
+              >
+                <ArrowLeft size={14} />
+                Retour
+              </Link>
+            )}
+          </div>
           <span className="text-sm text-gray-400">Étape {step + 1} sur {stepLabels.length}</span>
         </div>
       </header>
