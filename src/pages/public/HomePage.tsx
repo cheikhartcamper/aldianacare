@@ -108,7 +108,7 @@ export function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link to="/inscription">
-                  <Button size="lg" variant="gold" className="group shadow-lg hover:shadow-xl transition-all">
+                  <Button size="lg" variant="primary" className="group shadow-lg hover:shadow-xl transition-all">
                     Souscrire maintenant
                     <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
@@ -123,19 +123,29 @@ export function HomePage() {
               <div className="flex items-center gap-6 mt-10">
                 <div className="flex -space-x-2">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-white flex items-center justify-center text-[10px] font-bold text-primary">
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.8 + i * 0.1, duration: 0.3 }}
+                      className="w-8 h-8 rounded-full bg-primary/20 border-2 border-white flex items-center justify-center text-[10px] font-bold text-primary"
+                    >
                       {String.fromCharCode(64 + i)}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-                <div>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2, duration: 0.5 }}
+                >
                   <div className="flex items-center gap-1 mb-0.5">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <Star key={i} size={12} className="text-gold fill-gold" />
                     ))}
                   </div>
                   <p className="text-xs text-gray-500">Noté 4.9/5 par +2000 familles</p>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
 
@@ -207,11 +217,17 @@ export function HomePage() {
                 custom={i}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true }}
+                viewport={{ once: true, margin: "-100px" }}
                 variants={fadeUp}
-                className="text-center"
+                className="text-center group"
               >
-                <p className="text-3xl lg:text-4xl font-bold mb-1">{stat.value}</p>
+                <motion.p
+                  className="text-3xl lg:text-4xl font-bold mb-1"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {stat.value}
+                </motion.p>
                 <p className="text-sm text-white/70">{stat.label}</p>
               </motion.div>
             ))}
