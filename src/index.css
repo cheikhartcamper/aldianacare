@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0F5F43;
+  --color-primary-light: #1a7a5a;
+  --color-primary-dark: #0a4a34;
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #0F5F43;
+  --color-primary-600: #0a4a34;
+  --color-primary-700: #083d2b;
+  --color-primary-800: #062f22;
+  --color-primary-900: #042119;
+
+  --color-gold: #F2C94C;
+  --color-gold-light: #f5d876;
+  --color-gold-dark: #d4a731;
+
+  --color-surface: #FFFFFF;
+  --color-surface-secondary: #F5F7FA;
+  --color-surface-tertiary: #EDF0F4;
+
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-success: #10B981;
+  --color-info: #3B82F6;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-gray-900 font-sans;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Skeleton loading */
+.skeleton {
+  @apply bg-gray-200 rounded animate-pulse;
+}
+
+.dark .skeleton {
+  @apply bg-gray-700;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
