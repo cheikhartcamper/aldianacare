@@ -162,13 +162,13 @@ export function HomePage() {
                 >
                   {/* Image */}
                   <img
-                    src="/care.png"
+                    src="/care2.png"
                     alt="Famille protégée"
-                    className="w-full h-[450px] object-cover object-top"
+                    className="w-full h-[480px] object-cover object-top"
                   />
                   
                   {/* Text section - solid green below image */}
-                  <div className="bg-gradient-to-br from-primary to-primary-dark p-6 text-center text-white">
+                  <div className="bg-gradient-to-br from-primary to-primary-dark py-3 px-6 text-center text-white">
                     <div className="flex items-center justify-center gap-3 mb-2">
                       <Shield size={22} className="text-gold" />
                       <h3 className="text-xl font-bold">Protection Mondiale</h3>
