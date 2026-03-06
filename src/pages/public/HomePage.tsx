@@ -103,9 +103,9 @@ export function HomePage() {
                 Assurance 100% digitale
               </div>
               <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                <span className="font-serif">La sérénité au bout du monde.</span>
+                <span className="font-serif">Votre famille protégée,</span>
                 <br />
-                <span className="text-primary">Aldiana Care</span>, votre assurance rapatriement
+                <span className="text-primary">où que vous soyez.</span>
               </h1>
               <p className="text-lg text-gray-600 leading-relaxed mb-4 max-w-lg">
                 Aldiana Care est une solution digitale d'assurance rapatriement de corps destinée en priorité aux ressortissants d'Afrique de l'Ouest vivant à l'étranger (Europe, Amérique du Nord, Maghreb, Moyen-Orient).
