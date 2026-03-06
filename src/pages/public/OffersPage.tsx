@@ -5,76 +5,44 @@ import { Button, Card } from '@/components/ui';
 
 const plans = [
   {
-    name: 'Basic',
-    price: '9,90',
+    name: 'Individuel',
+    price: '4 900',
     period: '/mois',
-    desc: 'Protection essentielle pour un individu',
+    desc: 'Protection essentielle pour une personne',
     color: 'border-gray-200',
     features: [
       { name: 'Rapatriement du corps', included: true },
       { name: 'Assistance administrative', included: true },
       { name: 'Support téléphonique', included: true },
-      { name: 'Couverture Europe', included: true },
+      { name: 'Couverture Europe & Afrique', included: true },
+      { name: 'Assistance funéraire', included: true },
+      { name: 'Jusqu\'à 6 personnes couvertes', included: false },
       { name: 'Billet d\'avion famille', included: false },
-      { name: 'Assistance funéraire complète', included: false },
-      { name: 'Couverture Monde entier', included: false },
       { name: 'Capital décès', included: false },
+      { name: 'Gestionnaire dédié', included: false },
+      { name: 'Priority support 24/7', included: false },
     ],
     popular: false,
   },
   {
-    name: 'Premium',
-    price: '19,90',
+    name: 'Familial',
+    price: '9 900',
     period: '/mois',
-    desc: 'La couverture la plus populaire',
+    desc: 'Toute la famille protégée',
     color: 'border-primary',
     features: [
       { name: 'Rapatriement du corps', included: true },
       { name: 'Assistance administrative', included: true },
       { name: 'Support téléphonique', included: true },
-      { name: 'Couverture Europe', included: true },
+      { name: 'Couverture Europe & Afrique', included: true },
+      { name: 'Assistance funéraire', included: true },
+      { name: 'Jusqu\'à 6 personnes couvertes', included: true },
       { name: 'Billet d\'avion famille', included: true },
-      { name: 'Assistance funéraire complète', included: true },
-      { name: 'Couverture Monde entier', included: true },
-      { name: 'Capital décès', included: false },
+      { name: 'Capital décès', included: true },
+      { name: 'Gestionnaire dédié', included: true },
+      { name: 'Priority support 24/7', included: true },
     ],
     popular: true,
-  },
-  {
-    name: 'Family',
-    price: '29,90',
-    period: '/mois',
-    desc: 'Toute la famille protégée',
-    color: 'border-gold',
-    features: [
-      { name: 'Rapatriement du corps', included: true },
-      { name: 'Assistance administrative', included: true },
-      { name: 'Support téléphonique', included: true },
-      { name: 'Couverture Europe', included: true },
-      { name: 'Billet d\'avion famille', included: true },
-      { name: 'Assistance funéraire complète', included: true },
-      { name: 'Couverture Monde entier', included: true },
-      { name: 'Capital décès', included: true },
-    ],
-    popular: false,
-  },
-  {
-    name: 'Pathologie',
-    price: '39,90',
-    period: '/mois',
-    desc: 'Couverture avec pathologie existante',
-    color: 'border-gray-200',
-    features: [
-      { name: 'Rapatriement du corps', included: true },
-      { name: 'Assistance administrative', included: true },
-      { name: 'Support téléphonique', included: true },
-      { name: 'Couverture Europe', included: true },
-      { name: 'Billet d\'avion famille', included: true },
-      { name: 'Assistance funéraire complète', included: true },
-      { name: 'Couverture Monde entier', included: true },
-      { name: 'Capital décès', included: true },
-    ],
-    popular: false,
   },
 ];
 
@@ -104,7 +72,7 @@ export function OffersPage() {
 
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -126,7 +94,8 @@ export function OffersPage() {
                     <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
                   </div>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-primary">{plan.price}€</span>
+                    <span className="text-4xl font-bold text-primary">{plan.price}</span>
+                    <span className="text-lg font-semibold text-gray-500 ml-1">FCFA</span>
                     <span className="text-gray-400 text-sm">{plan.period}</span>
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
@@ -188,7 +157,7 @@ export function OffersPage() {
                 <tr className="border-b border-gray-50">
                   <td className="p-4 font-semibold text-gray-900">Prix mensuel</td>
                   {plans.map((p) => (
-                    <td key={p.name} className="p-4 text-center font-bold text-primary">{p.price}€</td>
+                    <td key={p.name} className="p-4 text-center font-bold text-primary">{p.price} FCFA</td>
                   ))}
                 </tr>
               </tbody>

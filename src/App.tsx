@@ -23,6 +23,7 @@ import { TrustedPersonPage } from '@/pages/dashboard/TrustedPersonPage';
 import { SponsorshipDashboard } from '@/pages/dashboard/SponsorshipDashboard';
 import { DeathDeclarationPage } from '@/pages/dashboard/DeathDeclarationPage';
 import { SupportPage } from '@/pages/dashboard/SupportPage';
+import { AssistanceCenterPage } from '@/pages/dashboard/AssistanceCenterPage';
 import { NotificationsPage } from '@/pages/dashboard/NotificationsPage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 
@@ -64,6 +65,7 @@ function App() {
           <Route path="parrainage" element={<SponsorshipDashboard />} />
           <Route path="declaration-deces" element={<DeathDeclarationPage />} />
           <Route path="support" element={<SupportPage />} />
+          <Route path="assistance" element={<AssistanceCenterPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>

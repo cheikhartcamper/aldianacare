@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, CreditCard, Gift, HeadphonesIcon,
   Bell, Settings, LogOut, Menu, X, ChevronDown, Shield, Heart,
-  Moon, Sun, AlertTriangle, FolderOpen, User
+  Moon, Sun, AlertTriangle, FolderOpen, User, LifeBuoy
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Badge, Logo } from '@/components/ui';
@@ -21,6 +21,7 @@ const secondaryLinks = [
   { label: 'Personne de confiance', path: '/app/personne-confiance', icon: Heart },
   { label: 'Parrainage', path: '/app/parrainage', icon: Gift },
   { label: 'Déclaration décès', path: '/app/declaration-deces', icon: AlertTriangle },
+  { label: 'Centre d\'assistance', path: '/app/assistance', icon: LifeBuoy },
   { label: 'Support', path: '/app/support', icon: HeadphonesIcon },
 ];
 

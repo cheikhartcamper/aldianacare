@@ -31,28 +31,20 @@ const stats = [
 
 const plans = [
   {
-    name: 'Basic',
-    price: '9,90',
+    name: 'Individuel',
+    price: '4 900',
     period: '/mois',
-    desc: 'Protection essentielle',
-    features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe'],
+    desc: 'Protection essentielle pour une personne',
+    features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe & Afrique', 'Assistance funéraire'],
     popular: false,
   },
   {
-    name: 'Premium',
-    price: '19,90',
-    period: '/mois',
-    desc: 'La plus populaire',
-    features: ['Tout Basic +', 'Billet d\'avion famille', 'Assistance funéraire complète', 'Couverture Monde entier', 'Gestionnaire dédié'],
-    popular: true,
-  },
-  {
-    name: 'Family',
-    price: '29,90',
+    name: 'Familial',
+    price: '9 900',
     period: '/mois',
     desc: 'Toute la famille protégée',
-    features: ['Tout Premium +', 'Jusqu\'à 6 personnes', 'Assurance pathologie', 'Capital décès', 'Priority support'],
-    popular: false,
+    features: ['Tout Individuel +', 'Jusqu\'à 6 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
+    popular: true,
   },
 ];
 
@@ -311,7 +303,7 @@ export function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -338,7 +330,8 @@ export function HomePage() {
                     <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
                   </div>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}€</span>
+                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                    <span className="text-lg font-semibold text-gray-500 ml-1">FCFA</span>
                     <span className="text-gray-400 text-sm">{plan.period}</span>
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
