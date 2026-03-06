@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
-  Shield, Star, CheckCircle, Users,
+  Shield, Star, CheckCircle,
   Globe, ArrowRight, Zap, HeadphonesIcon,
   MapPin, Plane, FileSignature, Camera
 } from 'lucide-react';
@@ -63,18 +63,21 @@ const testimonials = [
     location: 'Paris, France',
     text: 'Aldiana Care nous a accompagnés dans un moment très difficile. Le rapatriement a été géré avec dignité et professionnalisme.',
     rating: 5,
+    avatar: '/testimonial1.png',
   },
   {
     name: 'Moussa Konaté',
     location: 'Bruxelles, Belgique',
     text: 'La souscription était simple et rapide. Je suis rassuré de savoir que ma famille est protégée.',
     rating: 5,
+    avatar: '/testimonial2.png',
   },
   {
-    name: 'Aminata Camara',
+    name: 'Assane Camara',
     location: 'Rome, Italie',
     text: 'Un service exceptionnel. L\'équipe est disponible 24h/24 et parle nos langues. Merci Aldiana Care.',
     rating: 5,
+    avatar: '/testimonial3.png',
   },
 ];
 
@@ -498,9 +501,11 @@ export function HomePage() {
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-6">"{t.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users size={16} className="text-primary" />
-                    </div>
+                    <img 
+                      src={t.avatar} 
+                      alt={t.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
+                    />
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{t.name}</p>
                       <p className="text-xs text-gray-400">{t.location}</p>
