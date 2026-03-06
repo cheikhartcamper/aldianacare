@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
-  Shield, Heart, Phone, Star, CheckCircle, Users,
-  Globe, ArrowRight, Zap, Award, HeadphonesIcon
+  Shield, Star, CheckCircle, Users,
+  Globe, ArrowRight, Zap, HeadphonesIcon,
+  MapPin, Plane, FileSignature, Camera
 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 
@@ -17,9 +18,17 @@ const fadeUp: Variants = {
 };
 
 const steps = [
-  { icon: Shield, title: 'Souscrire', desc: 'Choisissez votre formule et souscrivez en quelques minutes, 100% en ligne.' },
-  { icon: Heart, title: 'Protéger sa famille', desc: 'Votre famille est protégée partout dans le monde avec une couverture complète.' },
-  { icon: Phone, title: 'Assistance en cas de besoin', desc: 'En cas de décès, nous gérons le rapatriement et les formalités funéraires.' },
+  { icon: FileSignature, title: 'Souscrivez en ligne', desc: 'Choisissez votre formule, signez digitalement et activez votre contrat en quelques minutes.' },
+  { icon: Shield, title: 'Protégez vos proches', desc: 'Votre famille est couverte partout dans le monde : Europe, Amérique du Nord, Maghreb, Moyen-Orient.' },
+  { icon: Plane, title: 'Rapatriement garanti', desc: 'En cas de décès, nous prenons en charge le rapatriement du corps et l\'assistance funéraire complète.' },
+];
+
+const coverageRegions = [
+  { region: 'Europe', countries: 'France, Belgique, Italie, Espagne, Allemagne, Suisse...', flag: '🇪🇺', count: '15+ pays' },
+  { region: 'Amérique du Nord', countries: 'États-Unis, Canada', flag: '🌎', count: '2 pays' },
+  { region: 'Maghreb', countries: 'Maroc, Tunisie, Algérie', flag: '🌍', count: '3 pays' },
+  { region: 'Moyen-Orient', countries: 'Émirats Arabes Unis, Arabie Saoudite, Qatar', flag: '🌏', count: '3+ pays' },
+  { region: 'Afrique de l\'Ouest', countries: 'Sénégal, Mali, Guinée, Côte d\'Ivoire, Mauritanie, Togo, Burkina Faso...', flag: '🌍', count: '10+ pays' },
 ];
 
 const stats = [
@@ -95,8 +104,12 @@ export function HomePage() {
                 <br />
                 <span className="text-primary">Aldiana Care</span>, votre assurance rapatriement
               </h1>
-              <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-lg">
-                Protégez votre famille avec la première assurance rapatriement et assistance funéraire 100% digitale pour la diaspora ouest-africaine.
+              <p className="text-lg text-gray-600 leading-relaxed mb-4 max-w-lg">
+                Aldiana Care est une solution digitale d'assurance rapatriement de corps destinée en priorité aux ressortissants d'Afrique de l'Ouest vivant à l'étranger (Europe, Amérique du Nord, Maghreb, Moyen-Orient).
+              </p>
+              <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-lg flex items-center gap-2 flex-wrap">
+                <MapPin size={14} className="text-primary" />
+                <span>Europe • Amérique du Nord • Maghreb • Moyen-Orient</span>
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link to="/inscription">
@@ -165,7 +178,7 @@ export function HomePage() {
                       <Shield size={22} className="text-gold" />
                       <h3 className="text-xl font-bold">Protection Mondiale</h3>
                     </div>
-                    <p className="text-white/70 text-sm">25+ pays couverts en Afrique et en Europe</p>
+                    <p className="text-white/70 text-sm">Diaspora d'Afrique de l'Ouest couverte dans 25+ pays</p>
                   </div>
                 </div>
 
@@ -357,8 +370,52 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Pourquoi Aldiana Care */}
+      {/* Zones de couverture */}
       <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center mb-14"
+          >
+            <span className="inline-block px-4 py-1.5 bg-primary-50 text-primary text-sm font-medium rounded-full mb-4">
+              Couverture internationale
+            </span>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Où que vous viviez, nous vous couvrons
+            </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Aldiana Care protège les ressortissants d'Afrique de l'Ouest dans toutes les grandes régions de la diaspora.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {coverageRegions.map((r, i) => (
+              <motion.div
+                key={r.region}
+                custom={i + 1}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+              >
+                <Card hover className="text-center h-full">
+                  <span className="text-3xl mb-3 block">{r.flag}</span>
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1">{r.region}</h3>
+                  <p className="text-xs text-primary font-bold mb-2">{r.count}</p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">{r.countries}</p>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pourquoi Aldiana Care */}
+      <section className="py-20 bg-surface-secondary">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -378,10 +435,10 @@ export function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Globe, title: 'Couverture mondiale', desc: 'Plus de 25 pays couverts en Afrique et Europe' },
-              { icon: Zap, title: '100% Digital', desc: 'Souscription, paiement et gestion entièrement en ligne' },
-              { icon: HeadphonesIcon, title: 'Support 24/7', desc: 'Assistance en français et langues africaines' },
-              { icon: Award, title: 'Confiance', desc: 'Plus de 15 000 familles nous font confiance' },
+              { icon: Globe, title: 'Couverture mondiale', desc: 'Europe, Amérique du Nord, Maghreb, Moyen-Orient vers l\'Afrique de l\'Ouest' },
+              { icon: Zap, title: '100% Digital', desc: 'Souscription en ligne, signature digitale, contrat généré instantanément' },
+              { icon: HeadphonesIcon, title: 'Support 24/7', desc: 'Assistance en français, wolof, bambara et langues ouest-africaines' },
+              { icon: Camera, title: 'Onboarding simple', desc: 'Photo, pièce d\'identité et signature depuis votre téléphone' },
             ].map((item, i) => (
               <motion.div
                 key={item.title}
@@ -474,8 +531,8 @@ export function HomePage() {
               Protégez votre famille dès aujourd'hui
             </h2>
             <p className="text-lg text-white/70 mb-8">
-              Rejoignez plus de 15 000 familles qui font confiance à Aldiana Care.
-              La souscription ne prend que 5 minutes.
+              Rejoignez la communauté de la diaspora ouest-africaine qui fait confiance à Aldiana Care.
+              Souscription 100% en ligne en quelques minutes.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/inscription">

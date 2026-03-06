@@ -12,7 +12,7 @@ import { ContactPage } from '@/pages/public/ContactPage';
 import { SponsorshipPage } from '@/pages/public/SponsorshipPage';
 
 import { LoginPage } from '@/pages/auth/LoginPage';
-import { OnboardingPage } from '@/pages/auth/OnboardingPage';
+import { OnboardingPage } from '@/pages/public/OnboardingPage';
 
 import { DashboardHome } from '@/pages/dashboard/DashboardHome';
 import { ContractPage } from '@/pages/dashboard/ContractPage';
