@@ -1,11 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, User, LifeBuoy } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Input, Logo } from '@/components/ui';
 
+type LoginRole = 'personnel' | 'assistance';
+
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<LoginRole>('personnel');
   const navigate = useNavigate();
 
   return (
@@ -60,13 +63,41 @@ export function LoginPage() {
           </Link>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion</h1>
-          <p className="text-sm text-gray-500 mb-8">Accédez à votre espace personnel Aldiana Care.</p>
+          <p className="text-sm text-gray-500 mb-6">Sélectionnez votre espace et connectez-vous.</p>
+
+          {/* Role selector tabs */}
+          <div className="flex gap-3 mb-6">
+            <button
+              type="button"
+              onClick={() => setRole('personnel')}
+              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                role === 'personnel'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <User size={18} />
+              <span>Espace Personnel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('assistance')}
+              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                role === 'assistance'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <LifeBuoy size={18} />
+              <span>Centre d'Assistance</span>
+            </button>
+          </div>
 
           <form
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              navigate('/app');
+              navigate(role === 'assistance' ? '/assistance' : '/app');
             }}
           >
             <Input
@@ -102,7 +133,7 @@ export function LoginPage() {
             </div>
 
             <Button type="submit" fullWidth size="lg" variant="gold">
-              Se connecter
+              {role === 'assistance' ? 'Accéder au centre d\'assistance' : 'Se connecter'}
             </Button>
           </form>
 

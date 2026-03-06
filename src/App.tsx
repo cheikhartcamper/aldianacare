@@ -23,9 +23,15 @@ import { TrustedPersonPage } from '@/pages/dashboard/TrustedPersonPage';
 import { SponsorshipDashboard } from '@/pages/dashboard/SponsorshipDashboard';
 import { DeathDeclarationPage } from '@/pages/dashboard/DeathDeclarationPage';
 import { SupportPage } from '@/pages/dashboard/SupportPage';
-import { AssistanceCenterPage } from '@/pages/dashboard/AssistanceCenterPage';
 import { NotificationsPage } from '@/pages/dashboard/NotificationsPage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
+
+import { AssistanceLayout } from '@/components/layout/AssistanceLayout';
+import { AssistanceDashboard } from '@/pages/assistance/AssistanceDashboard';
+import { AssistanceCasesPage } from '@/pages/assistance/AssistanceCasesPage';
+import { AssistanceRapatriementsPage } from '@/pages/assistance/AssistanceRapatriementsPage';
+import { AssistanceManagersPage } from '@/pages/assistance/AssistanceManagersPage';
+import { AssistanceMessagesPage } from '@/pages/assistance/AssistanceMessagesPage';
 
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
@@ -65,9 +71,17 @@ function App() {
           <Route path="parrainage" element={<SponsorshipDashboard />} />
           <Route path="declaration-deces" element={<DeathDeclarationPage />} />
           <Route path="support" element={<SupportPage />} />
-          <Route path="assistance" element={<AssistanceCenterPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="parametres" element={<SettingsPage />} />
+        </Route>
+
+        {/* Assistance center */}
+        <Route path="/assistance" element={<AssistanceLayout />}>
+          <Route index element={<AssistanceDashboard />} />
+          <Route path="dossiers" element={<AssistanceCasesPage />} />
+          <Route path="rapatriements" element={<AssistanceRapatriementsPage />} />
+          <Route path="managers" element={<AssistanceManagersPage />} />
+          <Route path="messages" element={<AssistanceMessagesPage />} />
         </Route>
 
         {/* Admin dashboard */}
