@@ -25,22 +25,45 @@ const stepLabels = [
 
 const plans = [
   {
-    id: 'individuel',
-    name: 'Individuel',
-    price: '4 900',
+    id: 'individuelle',
+    name: 'Individuelle',
+    price: '15',
+    priceAnnual: '140',
     period: '/mois',
-    desc: 'Protection essentielle pour une personne',
+    desc: 'Adulte en bonne santé',
     features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe & Afrique', 'Assistance funéraire'],
     popular: false,
   },
   {
-    id: 'familial',
-    name: 'Familial',
-    price: '9 900',
+    id: 'pathologie',
+    name: 'Pathologie',
+    price: '30',
+    priceAnnual: '280',
     period: '/mois',
-    desc: 'Toute la famille protégée',
-    features: ['Tout Individuel +', 'Jusqu\'à 6 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
+    desc: 'Maladies chroniques',
+    features: ['Tout Individuelle +', 'Couverture pathologies', 'Suivi médical', 'Assistance spécialisée'],
+    popular: false,
+  },
+  {
+    id: 'family',
+    name: 'Aldiana Family',
+    price: '50',
+    priceAnnual: '450',
+    period: '/mois',
+    desc: 'Père, mère + 3 enfants max (jusqu\'à 5 pers.)',
+    features: ['Tout Individuelle +', 'Jusqu\'à 5 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
     popular: true,
+  },
+  {
+    id: 'option-risque',
+    name: 'Option Indemnité de Risque',
+    price: '+25',
+    priceAnnual: '+250',
+    period: '/mois',
+    desc: 'Pandémie, guerre, nucléaire',
+    features: ['En complément des formules', 'Couverture pandémie', 'Couverture guerre', 'Risque nucléaire'],
+    popular: false,
+    isOption: true,
   },
 ];
 
@@ -239,9 +262,16 @@ export function OnboardingPage() {
                         </div>
                       </div>
                       <div className="mb-4">
-                        <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                        <span className="text-sm font-semibold text-gray-500 ml-1">FCFA</span>
-                        <span className="text-gray-400 text-xs">{plan.period}</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
+                          <span className="text-sm font-semibold text-gray-500">€</span>
+                          <span className="text-gray-400 text-xs">{plan.period}</span>
+                        </div>
+                        {plan.priceAnnual && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            {plan.priceAnnual}€ /an
+                          </p>
+                        )}
                       </div>
                       <ul className="space-y-2">
                         {plan.features.map((f) => (
@@ -535,15 +565,15 @@ export function OnboardingPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">
-                          Formule {selectedPlan === 'familial' ? 'Familiale' : 'Individuelle'}
+                          Formule {selectedPlan === 'family' ? 'Aldiana Family' : selectedPlan === 'pathologie' ? 'Pathologie' : selectedPlan === 'option-risque' ? 'Option Indemnité de Risque' : 'Individuelle'}
                         </p>
                         <p className="text-xs text-gray-500">Cotisation mensuelle</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-primary">
-                          {selectedPlan === 'familial' ? '9 900' : '4 900'}
+                          {selectedPlan === 'family' ? '50' : selectedPlan === 'pathologie' ? '30' : selectedPlan === 'option-risque' ? '+25' : '15'}€
                         </p>
-                        <p className="text-xs text-gray-500">FCFA/mois</p>
+                        <p className="text-xs text-gray-500">/mois</p>
                       </div>
                     </div>
                   </Card>
@@ -728,13 +758,13 @@ export function OnboardingPage() {
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Formule</p>
                         <p className="text-sm font-semibold text-gray-900">
-                          {selectedPlan === 'familial' ? 'Familiale' : 'Individuelle'}
+                          {selectedPlan === 'family' ? 'Aldiana Family' : selectedPlan === 'pathologie' ? 'Pathologie' : selectedPlan === 'option-risque' ? 'Option Indemnité de Risque' : 'Individuelle'}
                         </p>
                       </div>
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Cotisation</p>
                         <p className="text-sm font-semibold text-primary">
-                          {selectedPlan === 'familial' ? '9 900' : '4 900'} FCFA/mois
+                          {selectedPlan === 'family' ? '50' : selectedPlan === 'pathologie' ? '30' : selectedPlan === 'option-risque' ? '+25' : '15'}€ /mois
                         </p>
                       </div>
                     </div>

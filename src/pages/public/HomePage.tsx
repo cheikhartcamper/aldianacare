@@ -42,20 +42,41 @@ const stats = [
 
 const plans = [
   {
-    name: 'Individuel',
-    price: '4 900',
+    name: 'Individuelle',
+    price: '15',
+    priceAnnual: '140',
     period: '/mois',
-    desc: 'Protection essentielle pour une personne',
+    desc: 'Adulte en bonne santé',
     features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe & Afrique', 'Assistance funéraire'],
     popular: false,
   },
   {
-    name: 'Familial',
-    price: '9 900',
+    name: 'Pathologie',
+    price: '30',
+    priceAnnual: '280',
     period: '/mois',
-    desc: 'Toute la famille protégée',
-    features: ['Tout Individuel +', 'Jusqu\'à 6 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
+    desc: 'Maladies chroniques',
+    features: ['Tout Individuelle +', 'Couverture pathologies', 'Suivi médical', 'Assistance spécialisée'],
+    popular: false,
+  },
+  {
+    name: 'Aldiana Family',
+    price: '50',
+    priceAnnual: '450',
+    period: '/mois',
+    desc: 'Père, mère + 3 enfants max (jusqu\'à 5 pers.)',
+    features: ['Tout Individuelle +', 'Jusqu\'à 5 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
     popular: true,
+  },
+  {
+    name: 'Option Indemnité de Risque',
+    price: '+25',
+    priceAnnual: '+250',
+    period: '/mois',
+    desc: 'Pandémie, guerre, nucléaire',
+    features: ['En complément des formules', 'Couverture pandémie', 'Couverture guerre', 'Risque nucléaire'],
+    popular: false,
+    isOption: true,
   },
 ];
 
@@ -461,7 +482,7 @@ export function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -488,9 +509,16 @@ export function HomePage() {
                     <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
                   </div>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-lg font-semibold text-gray-500 ml-1">FCFA</span>
-                    <span className="text-gray-400 text-sm">{plan.period}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                      <span className="text-lg font-semibold text-gray-500">€</span>
+                      <span className="text-gray-400 text-sm">{plan.period}</span>
+                    </div>
+                    {plan.priceAnnual && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        {plan.priceAnnual}€ /an
+                      </p>
+                    )}
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((f) => (
