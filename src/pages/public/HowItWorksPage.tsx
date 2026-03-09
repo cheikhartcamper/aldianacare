@@ -1,44 +1,74 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Heart, Phone, FileText, CreditCard, CheckCircle, ArrowRight, Clock, Users } from 'lucide-react';
+import {
+  Shield, Heart, FileText, CreditCard, CheckCircle,
+  ArrowRight, Clock, Users, Camera, PenTool, UserCheck, Plane
+} from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 
-const steps = [
+const timelineSteps = [
   {
     num: '01',
     icon: Shield,
+    badge: 'CHOIX FORMULE',
     title: 'Choisissez votre formule',
-    desc: 'Comparez nos offres et sélectionnez la couverture adaptée à vos besoins et votre budget.',
+    desc: 'Comparez nos offres Individuelle et Familiale et sélectionnez la couverture adaptée à vos besoins. Tarifs en FCFA, transparents et sans frais cachés.',
+    side: 'left' as const,
+    highlights: ['Individuel : 4 900 FCFA/mois', 'Familial : 9 900 FCFA/mois'],
   },
   {
     num: '02',
     icon: FileText,
-    title: 'Remplissez votre dossier',
-    desc: 'Complétez vos informations personnelles et téléchargez vos documents d\'identité en quelques minutes.',
+    badge: 'DOSSIER EN LIGNE',
+    title: 'Remplissez vos informations',
+    desc: 'Complétez vos informations personnelles directement en ligne ou depuis votre téléphone. Rapide et sécurisé.',
+    side: 'right' as const,
+    highlights: ['Identité & coordonnées', 'Personne de confiance'],
   },
   {
     num: '03',
-    icon: CreditCard,
-    title: 'Payez en toute sécurité',
-    desc: 'Réglez par Wave, Orange Money, MTN Money, carte bancaire ou PayPal.',
+    icon: Camera,
+    badge: 'DOCUMENTS & PHOTO',
+    title: 'Photo et pièce d\'identité',
+    desc: 'Prenez une photo instantanée et téléchargez votre pièce d\'identité (passeport, CNI ou titre de séjour) depuis votre appareil.',
+    side: 'left' as const,
+    highlights: ['Photo souscripteur', 'Pièce d\'identité valide'],
   },
   {
     num: '04',
-    icon: CheckCircle,
-    title: 'Signez votre contrat',
-    desc: 'Signez électroniquement et recevez votre contrat immédiatement par email.',
+    icon: CreditCard,
+    badge: 'PAIEMENT SÉCURISÉ',
+    title: 'Payez en toute sécurité',
+    desc: 'Réglez votre cotisation par le moyen de paiement de votre choix. Mobile Money, carte bancaire ou virement.',
+    side: 'right' as const,
+    highlights: ['Wave, Orange Money, MTN', 'Carte bancaire, Western Union'],
   },
   {
     num: '05',
-    icon: Heart,
-    title: 'Votre famille est protégée',
-    desc: 'Désignez une personne de confiance et gérez tout depuis votre espace personnel.',
+    icon: PenTool,
+    badge: 'SIGNATURE DIGITALE',
+    title: 'Signez votre contrat',
+    desc: 'Signez électroniquement en dessinant ou en uploadant votre signature. Votre contrat est généré instantanément.',
+    side: 'left' as const,
+    highlights: ['Signature en ligne', 'Contrat PDF immédiat'],
   },
   {
     num: '06',
-    icon: Phone,
-    title: 'Assistance 24/7',
-    desc: 'En cas de besoin, notre équipe gère le rapatriement et toutes les formalités.',
+    icon: UserCheck,
+    badge: 'ACTIVATION',
+    title: 'Contrat activé',
+    desc: 'Votre contrat est validé et activé. Vous recevez votre attestation par email et accédez à votre espace personnel.',
+    side: 'right' as const,
+    highlights: ['Attestation par email', 'Espace personnel actif'],
+  },
+  {
+    num: '07',
+    icon: Plane,
+    badge: 'ASSISTANCE 24/7',
+    title: 'Protection & rapatriement',
+    desc: 'En cas de besoin, notre équipe prend en charge le rapatriement du corps et toutes les formalités funéraires avec dignité.',
+    side: 'left' as const,
+    highlights: ['Rapatriement garanti', 'Assistance funéraire complète'],
   },
 ];
 
@@ -69,33 +99,181 @@ export function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Steps */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="space-y-8">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.num}
-                initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <Card className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                  <div className="flex items-center gap-4">
-                    <span className="w-10 h-10 rounded-full bg-gold flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">{step.num}</span>
-                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <step.icon size={26} className="text-primary" />
+      {/* Timeline Steps */}
+      <section className="py-20 bg-gradient-to-b from-white to-primary-50/30">
+        <div className="max-w-5xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4">
+              Étapes de souscription
+            </span>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 font-serif">
+              Un parcours <span className="text-primary">simple</span> et <span className="text-gold-dark">rapide</span>
+            </h2>
+          </motion.div>
+
+          {/* Timeline */}
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary/60 to-gold hidden md:block" style={{ transform: 'translateX(-50%)' }} />
+
+            {/* Mobile vertical line */}
+            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary/60 to-gold md:hidden" />
+
+            <div className="space-y-8 md:space-y-12">
+              {timelineSteps.map((step, i) => (
+                <motion.div
+                  key={step.num}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className="relative"
+                >
+                  {/* Desktop layout */}
+                  <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] gap-8 items-center">
+                    {/* Left content */}
+                    <div className={step.side === 'left' ? '' : 'order-1'}>
+                      {step.side === 'left' && (
+                        <motion.div
+                          initial={{ opacity: 0, x: -40 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg transition-shadow relative">
+                            {/* Arrow pointing right */}
+                            <div className="absolute top-1/2 -right-2 w-4 h-4 bg-white border-r border-b border-gray-100 transform rotate(-45) -translate-y-1/2" />
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center">
+                                <step.icon size={22} className="text-primary" />
+                              </div>
+                              <span className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-full tracking-wider">
+                                {step.badge}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-bold text-gray-900 mb-2">{step.title}</h3>
+                            <p className="text-sm text-gray-500 leading-relaxed mb-3">{step.desc}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {step.highlights.map((h) => (
+                                <span key={h} className="inline-flex items-center gap-1 text-[11px] text-primary font-medium">
+                                  <CheckCircle size={12} className="text-gold-dark" /> {h}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+
+                    {/* Center circle */}
+                    <div className="flex flex-col items-center z-10 order-0 md:order-none">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark border-4 border-white shadow-lg flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{step.num}</span>
+                      </div>
+                    </div>
+
+                    {/* Right content */}
+                    <div className={step.side === 'right' ? '' : 'order-2'}>
+                      {step.side === 'right' && (
+                        <motion.div
+                          initial={{ opacity: 0, x: 40 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                          <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg transition-shadow relative">
+                            {/* Arrow pointing left */}
+                            <div className="absolute top-1/2 -left-2 w-4 h-4 bg-white border-l border-t border-gray-100 transform rotate(-45) -translate-y-1/2" />
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-11 h-11 bg-gold/15 rounded-xl flex items-center justify-center">
+                                <step.icon size={22} className="text-gold-dark" />
+                              </div>
+                              <span className="px-3 py-1 bg-gold text-primary text-[10px] font-bold rounded-full tracking-wider">
+                                {step.badge}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-bold text-gray-900 mb-2">{step.title}</h3>
+                            <p className="text-sm text-gray-500 leading-relaxed mb-3">{step.desc}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {step.highlights.map((h) => (
+                                <span key={h} className="inline-flex items-center gap-1 text-[11px] text-gold-dark font-medium">
+                                  <CheckCircle size={12} className="text-primary" /> {h}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{step.title}</h3>
-                    <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+
+                  {/* Mobile layout */}
+                  <div className="md:hidden flex gap-5">
+                    {/* Circle */}
+                    <div className="flex flex-col items-center z-10 flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark border-4 border-white shadow-lg flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">{step.num}</span>
+                      </div>
+                    </div>
+                    {/* Card */}
+                    <div className="flex-1 pb-4">
+                      <div className={`bg-white rounded-2xl p-5 shadow-md border border-gray-100 ${i % 2 === 0 ? '' : ''}`}>
+                        <div className="flex items-center gap-2.5 mb-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${step.side === 'left' ? 'bg-primary/10' : 'bg-gold/15'}`}>
+                            <step.icon size={20} className={step.side === 'left' ? 'text-primary' : 'text-gold-dark'} />
+                          </div>
+                          <span className={`px-2.5 py-0.5 text-[9px] font-bold rounded-full tracking-wider ${step.side === 'left' ? 'bg-primary text-white' : 'bg-gold text-primary'}`}>
+                            {step.badge}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-900 mb-1.5">{step.title}</h3>
+                        <p className="text-xs text-gray-500 leading-relaxed mb-2">{step.desc}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {step.highlights.map((h) => (
+                            <span key={h} className="inline-flex items-center gap-1 text-[10px] text-primary font-medium">
+                              <CheckCircle size={10} className="text-gold-dark" /> {h}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Bottom circle */}
+            <div className="hidden md:flex justify-center mt-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: 'spring', damping: 15, delay: 0.3 }}
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-dark border-4 border-white shadow-lg flex items-center justify-center"
+              >
+                <CheckCircle size={24} className="text-primary" />
               </motion.div>
-            ))}
+            </div>
           </div>
+
+          {/* CTA under timeline */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <Link to="/inscription">
+              <Button variant="primary" size="lg" icon={<ArrowRight size={18} />} className="shadow-lg">
+                Souscrire maintenant
+              </Button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 

@@ -4,7 +4,7 @@ import type { Variants } from 'framer-motion';
 import {
   Shield, Star, CheckCircle,
   Globe, ArrowRight, Zap, HeadphonesIcon,
-  MapPin, Plane, FileSignature, Camera
+  MapPin, Camera
 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 
@@ -17,10 +17,12 @@ const fadeUp: Variants = {
   }),
 };
 
-const steps = [
-  { icon: FileSignature, title: 'Souscrivez en ligne', desc: 'Choisissez votre formule, signez digitalement et activez votre contrat en quelques minutes.' },
-  { icon: Shield, title: 'Protégez vos proches', desc: 'Votre famille est couverte partout dans le monde : Europe, Amérique du Nord, Maghreb, Moyen-Orient.' },
-  { icon: Plane, title: 'Rapatriement garanti', desc: 'En cas de décès, nous prenons en charge le rapatriement du corps et l\'assistance funéraire complète.' },
+const howSteps: { num: string; badge: string; desc: string; side: 'left' | 'right'; illustration: 'form' | 'doc' | 'chat' | 'check' | 'app' }[] = [
+  { num: '01', badge: 'SOUSCRIPTION', desc: 'Renseignez les informations de votre bénéficiaire en ligne ou par téléphone.', side: 'left', illustration: 'form' },
+  { num: '02', badge: 'VALIDATION DOCUMENTS', desc: 'Vous recevez alors par email un lien pour uploader vos documents à valider.', side: 'right', illustration: 'doc' },
+  { num: '03', badge: 'PAIEMENT SÉCURISÉ', desc: 'Votre bénéficiaire est contacté pour choisir son mode de paiement sécurisé.', side: 'left', illustration: 'chat' },
+  { num: '04', badge: 'SIGNATURE CONTRAT', desc: 'En cas de validation par notre équipe, votre contrat est généré et envoyé.', side: 'right', illustration: 'check' },
+  { num: '05', badge: 'SUIVI CONTRAT', desc: 'Vous suivez les informations du bénéficiaire et de votre abonnement sur notre application.', side: 'left', illustration: 'app' },
 ];
 
 const coverageRegions = [
@@ -252,47 +254,187 @@ export function HomePage() {
       </section>
 
       {/* Comment ça marche */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-14"
-          >
-            <span className="inline-block px-4 py-1.5 bg-primary-50 text-primary text-sm font-medium rounded-full mb-4">
-              Simple et rapide
-            </span>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Comment ça marche ?</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              Souscrire à Aldiana Care est simple. En 3 étapes, votre famille est protégée.
-            </p>
+      <section className="py-16 md:py-20 bg-white">
+        <div className="max-w-[1400px] mx-auto px-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900">Comment ça marche ?</h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.title}
-                custom={i + 1}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-              >
-                <Card hover className="text-center h-full">
-                  <div className="w-16 h-16 mx-auto mb-5 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <step.icon size={28} className="text-primary" />
-                  </div>
-                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gold text-gray-900 text-sm font-bold mb-4">
-                    {i + 1}
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
-                </Card>
-              </motion.div>
+          {/* Desktop Timeline */}
+          <div className="hidden md:block relative" style={{ paddingTop: 8, paddingBottom: 8 }}>
+            {/* Center vertical line */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-[3px] -translate-x-1/2 bg-primary" />
+            {/* Top dot */}
+            <div className="absolute left-1/2 -top-1 -translate-x-1/2 w-3 h-3 rounded-full bg-primary" />
+            {/* Bottom dot */}
+            <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-3 h-3 rounded-full bg-primary" />
+
+            {howSteps.map((step, i) => (
+              <div key={step.num} className="relative grid grid-cols-[1fr_64px_1fr] items-start" style={{ marginBottom: i < howSteps.length - 1 ? 24 : 0 }}>
+
+                {/* LEFT */}
+                <div className="flex justify-end">
+                  {step.side === 'left' ? (
+                    <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-primary-50/50 rounded-2xl p-5 max-w-lg w-full mr-6">
+                      {/* Illustration */}
+                      <div className="flex items-start gap-2 mb-3">
+                        {step.illustration === 'form' && (
+                          <>
+                            <div className="bg-white rounded-md shadow-sm border border-gray-200 p-2 w-16 flex-shrink-0">
+                              <div className="text-[6px] font-bold text-primary mb-1">Devis</div>
+                              <div className="space-y-1">
+                                <div className="h-0.5 bg-primary/30 rounded w-full" />
+                                <div className="h-0.5 bg-primary/20 rounded w-4/5" />
+                                <div className="h-0.5 bg-primary/15 rounded w-3/5" />
+                              </div>
+                              <div className="mt-1.5 h-2.5 bg-primary/10 rounded w-full" />
+                            </div>
+                            <div className="bg-white rounded-md shadow-sm border border-gray-200 p-1.5 w-10 flex-shrink-0 -ml-3 mt-1 rotate-2">
+                              <div className="space-y-0.5">
+                                <div className="h-0.5 bg-gray-200 rounded w-full" />
+                                <div className="h-0.5 bg-gray-200 rounded w-3/4" />
+                                <div className="h-0.5 bg-gray-200 rounded w-1/2" />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {step.illustration === 'chat' && (
+                          <div className="relative">
+                            <div className="bg-white rounded-md shadow-sm border border-gray-200 p-2 w-20">
+                              <div className="flex items-center gap-1 mb-1">
+                                <div className="w-2 h-2 rounded-full bg-primary/30" />
+                                <div className="h-0.5 bg-gray-200 rounded flex-1" />
+                              </div>
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <CheckCircle size={8} className="text-primary flex-shrink-0" />
+                                <div className="h-0.5 bg-primary/15 rounded flex-1" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle size={8} className="text-primary flex-shrink-0" />
+                                <div className="h-0.5 bg-primary/15 rounded flex-1" />
+                              </div>
+                            </div>
+                            <div className="absolute -top-1.5 -right-1.5 bg-gold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
+                              <span className="text-[6px] text-white font-bold">...</span>
+                            </div>
+                          </div>
+                        )}
+                        {step.illustration === 'app' && (
+                          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-2 w-20">
+                            <div className="text-[6px] font-bold text-primary mb-1">Bonjour !</div>
+                            <div className="space-y-1">
+                              <div className="h-2 bg-primary/10 rounded w-full" />
+                              <div className="h-2 bg-gold/15 rounded w-full" />
+                            </div>
+                            <div className="mt-1 flex gap-0.5">
+                              <div className="w-2 h-2 rounded-full bg-primary/20" />
+                              <div className="w-2 h-2 rounded-full bg-gold/20" />
+                              <div className="w-2 h-2 rounded-full bg-primary/20" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <span className="inline-block px-3 py-1 bg-primary-dark text-white text-[10px] font-bold rounded-full tracking-wide mb-2">
+                        {step.badge}
+                      </span>
+                      <p className="text-sm text-gray-700 leading-relaxed"><span className="font-bold">{step.desc.split(' ').slice(0, 3).join(' ')}</span> {step.desc.split(' ').slice(3).join(' ')}</p>
+                    </motion.div>
+                  ) : <div />}
+                </div>
+
+                {/* CENTER CIRCLE */}
+                <div className="flex justify-center z-10">
+                  <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ type: 'spring', damping: 12, delay: 0.05 }} className="relative">
+                    <div className="w-11 h-11 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-lg border-[3px] border-white">
+                      {step.num}
+                    </div>
+                    {/* Arrow */}
+                    {step.side === 'left' && (
+                      <svg className="absolute top-1/2 -left-3 -translate-y-1/2 text-primary" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6L8 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    )}
+                    {step.side === 'right' && (
+                      <svg className="absolute top-1/2 -right-3 -translate-y-1/2 text-primary" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 1L9 6L4 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    )}
+                  </motion.div>
+                </div>
+
+                {/* RIGHT */}
+                <div className="flex justify-start">
+                  {step.side === 'right' ? (
+                    <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }} className="bg-primary-50/50 rounded-2xl p-5 max-w-lg w-full ml-6">
+                      {/* Illustration */}
+                      <div className="flex items-start gap-2 mb-3">
+                        {step.illustration === 'doc' && (
+                          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-2 w-16 flex-shrink-0">
+                            <div className="text-[6px] font-bold text-gray-400 mb-1">Devis</div>
+                            <div className="space-y-0.5 mb-1.5">
+                              <div className="h-0.5 bg-gray-200 rounded w-full" />
+                              <div className="h-0.5 bg-gray-200 rounded w-3/4" />
+                            </div>
+                            <div className="flex justify-end">
+                              <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                <CheckCircle size={8} className="text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {step.illustration === 'check' && (
+                          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-2 w-16 flex-shrink-0">
+                            <div className="space-y-1 mb-1.5">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle size={7} className="text-primary flex-shrink-0" />
+                                <div className="h-0.5 bg-primary/15 rounded flex-1" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle size={7} className="text-primary flex-shrink-0" />
+                                <div className="h-0.5 bg-primary/15 rounded flex-1" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle size={7} className="text-primary flex-shrink-0" />
+                                <div className="h-0.5 bg-primary/15 rounded flex-1" />
+                              </div>
+                            </div>
+                            <div className="flex justify-end">
+                              <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                <CheckCircle size={8} className="text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <span className="inline-block px-3 py-1 bg-primary-dark text-white text-[10px] font-bold rounded-full tracking-wide mb-2">
+                        {step.badge}
+                      </span>
+                      <p className="text-sm text-gray-700 leading-relaxed"><span className="font-bold">{step.desc.split(' ').slice(0, 3).join(' ')}</span> {step.desc.split(' ').slice(3).join(' ')}</p>
+                    </motion.div>
+                  ) : <div />}
+                </div>
+              </div>
             ))}
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden relative">
+            <div className="absolute left-5 top-0 bottom-0 w-[3px] bg-primary" />
+            <div className="absolute left-[14px] -top-1 w-3 h-3 rounded-full bg-primary" />
+            <div className="absolute left-[14px] -bottom-1 w-3 h-3 rounded-full bg-primary" />
+            <div className="space-y-4">
+              {howSteps.map((step, i) => (
+                <motion.div key={step.num} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.06 }} className="relative flex gap-4 items-start">
+                  <div className="flex-shrink-0 z-10">
+                    <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shadow-md border-[3px] border-white">
+                      {step.num}
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-primary-50/50 rounded-xl p-4">
+                    <span className="inline-block px-2 py-0.5 bg-primary-dark text-white text-[8px] font-bold rounded-full tracking-wider mb-1.5">
+                      {step.badge}
+                    </span>
+                    <p className="text-xs text-gray-700 leading-relaxed">{step.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -373,30 +515,33 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Zones de couverture */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-14"
-          >
-            <span className="inline-block px-4 py-1.5 bg-primary-50 text-primary text-sm font-medium rounded-full mb-4">
-              Couverture internationale
-            </span>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+      {/* Zones de couverture - World Map Style */}
+      <section className="py-20 bg-gradient-to-br from-primary-dark via-primary to-primary-dark relative overflow-hidden">
+        {/* Decorative globe circles */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full border border-white/5" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full border border-white/8" />
+        <div className="absolute top-10 right-10 w-2 h-2 rounded-full bg-gold/40 animate-pulse" />
+        <div className="absolute bottom-20 left-16 w-1.5 h-1.5 rounded-full bg-gold/30 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/3 left-10 w-1 h-1 rounded-full bg-white/20 animate-pulse" style={{ animationDelay: '2s' }} />
+
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm rounded-full mb-4">
+              <Globe size={14} className="text-gold" />
+              <span className="text-sm font-medium text-white/90">Couverture internationale</span>
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-white mb-4">
               Où que vous viviez, nous vous couvrons
             </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
+            <p className="text-white/60 max-w-2xl mx-auto">
               Aldiana Care protège les ressortissants d'Afrique de l'Ouest dans toutes les grandes régions de la diaspora.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {coverageRegions.map((r, i) => (
+          {/* Regions grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {coverageRegions.slice(0, 3).map((r, i) => (
               <motion.div
                 key={r.region}
                 custom={i + 1}
@@ -404,16 +549,50 @@ export function HomePage() {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={fadeUp}
+                className="group"
               >
-                <Card hover className="text-center h-full">
-                  <span className="text-3xl mb-3 block">{r.flag}</span>
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1">{r.region}</h3>
-                  <p className="text-xs text-primary font-bold mb-2">{r.count}</p>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">{r.countries}</p>
-                </Card>
+                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/15 transition-all hover:border-gold/30 h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className="text-4xl">{r.flag}</span>
+                    <div>
+                      <h3 className="font-bold text-white text-lg">{r.region}</h3>
+                      <span className="text-gold text-sm font-semibold">{r.count}</span>
+                    </div>
+                  </div>
+                  <p className="text-white/50 text-sm leading-relaxed">{r.countries}</p>
+                </div>
               </motion.div>
             ))}
           </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {coverageRegions.slice(3).map((r, i) => (
+              <motion.div
+                key={r.region}
+                custom={i + 4}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                className="group"
+              >
+                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/15 transition-all hover:border-gold/30 h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className="text-4xl">{r.flag}</span>
+                    <div>
+                      <h3 className="font-bold text-white text-lg">{r.region}</h3>
+                      <span className="text-gold text-sm font-semibold">{r.count}</span>
+                    </div>
+                  </div>
+                  <p className="text-white/50 text-sm leading-relaxed">{r.countries}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Bottom stat */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={6} className="text-center mt-10">
+            <p className="text-white/40 text-sm">Plus de <span className="text-gold font-bold text-lg">30 pays</span> couverts à travers le monde</p>
+          </motion.div>
         </div>
       </section>
 
