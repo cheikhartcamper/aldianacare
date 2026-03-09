@@ -5,10 +5,11 @@ import { Button, Card } from '@/components/ui';
 
 const plans = [
   {
-    name: 'Individuel',
-    price: '4 900',
+    name: 'Individuelle',
+    price: '15',
+    priceAnnual: '140',
     period: '/mois',
-    desc: 'Protection essentielle pour une personne',
+    desc: 'Adulte en bonne santé',
     color: 'border-gray-200',
     features: [
       { name: 'Rapatriement du corps', included: true },
@@ -16,19 +17,51 @@ const plans = [
       { name: 'Support téléphonique', included: true },
       { name: 'Couverture Europe & Afrique', included: true },
       { name: 'Assistance funéraire', included: true },
-      { name: 'Jusqu\'à 6 personnes couvertes', included: false },
+      { name: 'Couverture pathologies', included: false },
+      { name: 'Suivi médical', included: false },
+      { name: 'Jusqu\'à 5 personnes couvertes', included: false },
       { name: 'Billet d\'avion famille', included: false },
       { name: 'Capital décès', included: false },
       { name: 'Gestionnaire dédié', included: false },
       { name: 'Priority support 24/7', included: false },
+      { name: 'Couverture pandémie', included: false },
+      { name: 'Couverture guerre', included: false },
+      { name: 'Risque nucléaire', included: false },
     ],
     popular: false,
   },
   {
-    name: 'Familial',
-    price: '9 900',
+    name: 'Pathologie',
+    price: '30',
+    priceAnnual: '280',
     period: '/mois',
-    desc: 'Toute la famille protégée',
+    desc: 'Maladies chroniques',
+    color: 'border-gray-200',
+    features: [
+      { name: 'Rapatriement du corps', included: true },
+      { name: 'Assistance administrative', included: true },
+      { name: 'Support téléphonique', included: true },
+      { name: 'Couverture Europe & Afrique', included: true },
+      { name: 'Assistance funéraire', included: true },
+      { name: 'Couverture pathologies', included: true },
+      { name: 'Suivi médical', included: true },
+      { name: 'Jusqu\'à 5 personnes couvertes', included: false },
+      { name: 'Billet d\'avion famille', included: false },
+      { name: 'Capital décès', included: false },
+      { name: 'Gestionnaire dédié', included: false },
+      { name: 'Priority support 24/7', included: false },
+      { name: 'Couverture pandémie', included: false },
+      { name: 'Couverture guerre', included: false },
+      { name: 'Risque nucléaire', included: false },
+    ],
+    popular: false,
+  },
+  {
+    name: 'Aldiana Family',
+    price: '50',
+    priceAnnual: '450',
+    period: '/mois',
+    desc: 'Père, mère + 3 enfants max (jusqu\'à 5 pers.)',
     color: 'border-primary',
     features: [
       { name: 'Rapatriement du corps', included: true },
@@ -36,13 +69,45 @@ const plans = [
       { name: 'Support téléphonique', included: true },
       { name: 'Couverture Europe & Afrique', included: true },
       { name: 'Assistance funéraire', included: true },
-      { name: 'Jusqu\'à 6 personnes couvertes', included: true },
+      { name: 'Couverture pathologies', included: true },
+      { name: 'Suivi médical', included: true },
+      { name: 'Jusqu\'à 5 personnes couvertes', included: true },
       { name: 'Billet d\'avion famille', included: true },
       { name: 'Capital décès', included: true },
       { name: 'Gestionnaire dédié', included: true },
       { name: 'Priority support 24/7', included: true },
+      { name: 'Couverture pandémie', included: false },
+      { name: 'Couverture guerre', included: false },
+      { name: 'Risque nucléaire', included: false },
     ],
     popular: true,
+  },
+  {
+    name: 'Option Indemnité de Risque',
+    price: '+25',
+    priceAnnual: '+250',
+    period: '/mois',
+    desc: 'Pandémie, guerre, nucléaire (en complément)',
+    color: 'border-gold',
+    features: [
+      { name: 'Rapatriement du corps', included: false },
+      { name: 'Assistance administrative', included: false },
+      { name: 'Support téléphonique', included: false },
+      { name: 'Couverture Europe & Afrique', included: false },
+      { name: 'Assistance funéraire', included: false },
+      { name: 'Couverture pathologies', included: false },
+      { name: 'Suivi médical', included: false },
+      { name: 'Jusqu\'à 5 personnes couvertes', included: false },
+      { name: 'Billet d\'avion famille', included: false },
+      { name: 'Capital décès', included: false },
+      { name: 'Gestionnaire dédié', included: false },
+      { name: 'Priority support 24/7', included: false },
+      { name: 'Couverture pandémie', included: true },
+      { name: 'Couverture guerre', included: true },
+      { name: 'Risque nucléaire', included: true },
+    ],
+    popular: false,
+    isOption: true,
   },
 ];
 
@@ -72,7 +137,7 @@ export function OffersPage() {
 
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -94,9 +159,16 @@ export function OffersPage() {
                     <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
                   </div>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-primary">{plan.price}</span>
-                    <span className="text-lg font-semibold text-gray-500 ml-1">FCFA</span>
-                    <span className="text-gray-400 text-sm">{plan.period}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold text-primary">{plan.price}</span>
+                      <span className="text-lg font-semibold text-gray-500">€</span>
+                      <span className="text-gray-400 text-sm">{plan.period}</span>
+                    </div>
+                    {plan.priceAnnual && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        {plan.priceAnnual}€ /an
+                      </p>
+                    )}
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((f) => (
@@ -157,7 +229,7 @@ export function OffersPage() {
                 <tr className="border-b border-gray-50">
                   <td className="p-4 font-semibold text-gray-900">Prix mensuel</td>
                   {plans.map((p) => (
-                    <td key={p.name} className="p-4 text-center font-bold text-primary">{p.price} FCFA</td>
+                    <td key={p.name} className="p-4 text-center font-bold text-primary">{p.price}€</td>
                   ))}
                 </tr>
               </tbody>
