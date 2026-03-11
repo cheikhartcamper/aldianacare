@@ -6,3 +6,6 @@ export { Modal } from './Modal';
 export { Alert } from './Alert';
 export { StepProgress } from './StepProgress';
 export { Logo } from './Logo';
+export { DocImage } from './DocImage';
+export { PageLoader } from './PageLoader';
+export { BrandSpinner } from './BrandSpinner';

@@ -1,8 +1,8 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { Button, Logo } from '@/components/ui';
+import { Button, Logo, PageLoader } from '@/components/ui';
 
 const navLinks = [
   { label: 'Accueil', path: '/' },
@@ -15,7 +15,15 @@ const navLinks = [
 
 export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navLoading, setNavLoading] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleConnexion = () => {
+    setMobileOpen(false);
+    setNavLoading(true);
+    setTimeout(() => navigate('/connexion'), 600);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -51,9 +59,7 @@ export function PublicLayout() {
           </nav>
 
           <div className="hidden lg:flex items-center gap-3">
-            <Link to="/connexion">
-              <Button variant="ghost" size="sm">Connexion</Button>
-            </Link>
+            <Button variant="ghost" size="sm" onClick={handleConnexion}>Connexion</Button>
             <Link to="/inscription">
               <Button variant="gold" size="sm">Souscrire maintenant</Button>
             </Link>
@@ -93,9 +99,7 @@ export function PublicLayout() {
                   </Link>
                 ))}
                 <div className="pt-3 flex flex-col gap-2">
-                  <Link to="/connexion" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" fullWidth>Connexion</Button>
-                  </Link>
+                  <Button variant="outline" fullWidth onClick={handleConnexion}>Connexion</Button>
                   <Link to="/inscription" onClick={() => setMobileOpen(false)}>
                     <Button variant="gold" fullWidth>Souscrire maintenant</Button>
                   </Link>
@@ -105,6 +109,9 @@ export function PublicLayout() {
           )}
         </AnimatePresence>
       </header>
+
+      {/* Navigation loader */}
+      {navLoading && <PageLoader />}
 
       {/* Page content */}
       <main className="flex-1">

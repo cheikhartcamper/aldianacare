@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Shield, Bell, Globe, Loader2, CheckCircle } from 'lucide-react';
-import { Card, Button, Input } from '@/components/ui';
+import { Settings, Shield, Bell, Globe, CheckCircle } from 'lucide-react';
+import { Card, Button, Input, PageLoader, BrandSpinner } from '@/components/ui';
 import { adminService, type AdminSettings as AdminSettingsType } from '@/services/admin.service';
 
 export function AdminSettingsPage() {
@@ -52,9 +52,7 @@ export function AdminSettingsPage() {
       </motion.div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-primary" />
-        </div>
+        <PageLoader variant="inline" size="sm" label="Chargement des paramètres..." />
       ) : (
         <Card>
           <div className="flex items-center gap-3 mb-6">
@@ -77,7 +75,7 @@ export function AdminSettingsPage() {
             )}
             <div className="flex items-center gap-3">
               <Button size="sm" disabled={saving}>
-                {saving ? <><Loader2 size={14} className="animate-spin mr-1" /> Enregistrement...</> : 'Enregistrer'}
+                {saving ? <><BrandSpinner size={14} /> <span className="ml-1.5">Enregistrement...</span></> : 'Enregistrer'}
               </Button>
               {saved && <span className="text-sm text-primary flex items-center gap-1"><CheckCircle size={14} /> Enregistré</span>}
             </div>

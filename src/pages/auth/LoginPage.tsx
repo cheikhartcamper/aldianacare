@@ -1,33 +1,46 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, User, LifeBuoy, AlertTriangle, Clock, XCircle } from 'lucide-react';
-import { useState } from 'react';
-import { Button, Input, Logo } from '@/components/ui';
+import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, AlertTriangle, Clock, XCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Button, Input, Logo, PageLoader } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-
-type LoginRole = 'personnel' | 'assistance';
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('aldiana_remember_email') || '');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<LoginRole>('personnel');
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('aldiana_remember_email'));
   const [error, setError] = useState('');
   const [pendingMsg, setPendingMsg] = useState('');
   const [rejectedMsg, setRejectedMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLoginLoader, setShowLoginLoader] = useState(false);
+  const navigateTarget = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, isLoading, user } = useAuth();
 
-  // If already authenticated, redirect
+  const getRedirectPath = (role: string, from?: string) => {
+    const isAdminPath = from?.startsWith('/admin');
+    const isUserPath = from?.startsWith('/app');
+    if (role === 'admin') return (from && isAdminPath) ? from : '/admin';
+    return (from && isUserPath) ? from : '/app';
+  };
+
+  // Post-login branded loader — takes priority over everything
+  if (showLoginLoader) {
+    return <PageLoader />;
+  }
+
+  // Still determining auth state
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  // Already authenticated (back-button / direct visit while logged in)
   if (isAuthenticated && user) {
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-    if (user.role === 'admin') {
-      navigate(from || '/admin', { replace: true });
-    } else {
-      navigate(from || '/app', { replace: true });
-    }
+    return <Navigate to={getRedirectPath(user.role, from)} replace />;
   }
 
   return (
@@ -82,35 +95,7 @@ export function LoginPage() {
           </Link>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion</h1>
-          <p className="text-sm text-gray-500 mb-6">Sélectionnez votre espace et connectez-vous.</p>
-
-          {/* Role selector tabs */}
-          <div className="flex gap-3 mb-6">
-            <button
-              type="button"
-              onClick={() => setRole('personnel')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
-                role === 'personnel'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <User size={18} />
-              <span>Espace Personnel</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('assistance')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
-                role === 'assistance'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <LifeBuoy size={18} />
-              <span>Centre d'Assistance</span>
-            </button>
-          </div>
+          <p className="text-sm text-gray-500 mb-6">Connectez-vous à votre espace Aldiana Care.</p>
 
           <form
             className="space-y-4"
@@ -120,16 +105,29 @@ export function LoginPage() {
               setPendingMsg('');
               setRejectedMsg('');
               setIsSubmitting(true);
+              setShowLoginLoader(true);
               const result = await login(email, password);
               setIsSubmitting(false);
               if (result.success) {
-                navigate(role === 'assistance' ? '/assistance' : '/app');
-              } else if (result.registrationStatus === 'pending') {
-                setPendingMsg(result.message);
-              } else if (result.registrationStatus === 'rejected') {
-                setRejectedMsg(result.rejectionReason || result.message);
+                if (rememberMe) {
+                  localStorage.setItem('aldiana_remember_email', email);
+                } else {
+                  localStorage.removeItem('aldiana_remember_email');
+                }
+                const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+                const target = getRedirectPath(result.userRole || 'user', from);
+                navigateTarget.current = target;
+                setTimeout(() => navigate(navigateTarget.current!, { replace: true }), 800);
               } else {
-                setError(result.message);
+                setShowLoginLoader(false);
+                setIsSubmitting(false);
+                if (result.registrationStatus === 'pending') {
+                  setPendingMsg(result.message);
+                } else if (result.registrationStatus === 'rejected') {
+                  setRejectedMsg(result.rejectionReason || result.message);
+                } else {
+                  setError(result.message);
+                }
               }
             }}
           >
@@ -185,8 +183,13 @@ export function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
                 Se souvenir de moi
               </label>
               <a href="#" className="text-sm text-primary hover:underline font-medium">
@@ -195,7 +198,7 @@ export function LoginPage() {
             </div>
 
             <Button type="submit" fullWidth size="lg" variant="gold" disabled={isSubmitting}>
-              {isSubmitting ? 'Connexion en cours...' : role === 'assistance' ? 'Accéder au centre d\'assistance' : 'Se connecter'}
+              {isSubmitting ? 'Connexion en cours...' : 'Se connecter'}
             </Button>
           </form>
 
@@ -208,11 +211,6 @@ export function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-8 text-center">
-            <Link to="/admin" className="text-xs text-gray-400 hover:text-gray-600">
-              Accès administrateur
-            </Link>
-          </div>
         </motion.div>
       </div>
     </div>

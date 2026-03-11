@@ -1,53 +1,72 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, CreditCard, AlertTriangle, ArrowUpRight } from 'lucide-react';
-import { Card, Badge } from '@/components/ui';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  Users, CreditCard, AlertCircle, ArrowUpRight,
+  Loader2, CheckCircle, ArrowRight, AlertTriangle
+} from 'lucide-react';
+import { Card, Badge } from '@/components/ui';
+import { adminService, type UserWithTrusted } from '@/services/admin.service';
+import { Link } from 'react-router-dom';
+import {
+  AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-const revenueData = [
-  { month: 'Sep', revenue: 12400 },
-  { month: 'Oct', revenue: 14800 },
-  { month: 'Nov', revenue: 16200 },
-  { month: 'Dec', revenue: 15600 },
-  { month: 'Jan', revenue: 18900 },
-  { month: 'Fev', revenue: 21300 },
-  { month: 'Mar', revenue: 24100 },
-];
-
-const usersByCountry = [
-  { country: 'France', users: 5200 },
-  { country: 'Belgique', users: 2100 },
-  { country: 'Italie', users: 1800 },
-  { country: 'Espagne', users: 1400 },
-  { country: 'Allemagne', users: 1200 },
-  { country: 'Autres', users: 3300 },
+const inscriptionsData = [
+  { month: 'Sep', inscrits: 8 },
+  { month: 'Oct', inscrits: 14 },
+  { month: 'Nov', inscrits: 11 },
+  { month: 'Dec', inscrits: 19 },
+  { month: 'Jan', inscrits: 23 },
+  { month: 'Fev', inscrits: 18 },
+  { month: 'Mar', inscrits: 27 },
 ];
 
 const planDistribution = [
-  { name: 'Basic', value: 3200, color: '#9ca3af' },
-  { name: 'Premium', value: 6800, color: '#0F5F43' },
-  { name: 'Family', value: 3500, color: '#F2C94C' },
-  { name: 'Pathologie', value: 1500, color: '#3B82F6' },
+  { name: 'Individuel', value: 68, color: '#0F5F43' },
+  { name: 'Familial', value: 32, color: '#F2C94C' },
 ];
-
-const recentUsers = [
-  { name: 'Fatou Diop', email: 'fatou@email.com', plan: 'Premium', date: '05 Mar', country: 'France' },
-  { name: 'Moussa Konaté', email: 'moussa@email.com', plan: 'Family', date: '04 Mar', country: 'Belgique' },
-  { name: 'Aminata Camara', email: 'aminata@email.com', plan: 'Basic', date: '04 Mar', country: 'Italie' },
-  { name: 'Ibrahima Ba', email: 'ibrahima@email.com', plan: 'Premium', date: '03 Mar', country: 'France' },
-  { name: 'Mariam Touré', email: 'mariam@email.com', plan: 'Pathologie', date: '03 Mar', country: 'Espagne' },
-];
-
-const planColors: Record<string, string> = {
-  Basic: 'neutral',
-  Premium: 'primary',
-  Family: 'warning',
-  Pathologie: 'info',
-};
 
 export function AdminDashboard() {
+  const [recentUsers, setRecentUsers] = useState<UserWithTrusted[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<UserWithTrusted[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [approving, setApproving] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const [usersRes, pendingRes] = await Promise.all([
+        adminService.getUsers({ limit: 5, page: 1 }),
+        adminService.getRegistrations({ status: 'pending', limit: 5 }),
+      ]);
+      if (usersRes.success) {
+        setRecentUsers(usersRes.data.users);
+        setTotalUsers(usersRes.data.pagination.total);
+      }
+      if (pendingRes.success) {
+        setPendingRegistrations(pendingRes.data.registrations);
+        setPendingCount(pendingRes.data.pagination.total);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleQuickApprove = async (userId: string) => {
+    setApproving(userId);
+    try {
+      const res = await adminService.approveRegistration(userId);
+      if (res.success) {
+        setPendingRegistrations((prev) => prev.filter((r) => r.id !== userId));
+        setPendingCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch { /* ignore */ }
+    setApproving(null);
+  };
+
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -55,60 +74,139 @@ export function AdminDashboard() {
         <p className="text-sm text-gray-500 mt-1">Vue d'ensemble de la plateforme Aldiana Care.</p>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { title: 'Utilisateurs actifs', value: '15 024', change: '+12.5%', icon: Users, color: 'text-primary bg-primary/10' },
-          { title: 'Contrats actifs', value: '12 847', change: '+8.3%', icon: FileText, color: 'text-info bg-info/10' },
-          { title: 'Revenu mensuel', value: '24 100€', change: '+13.1%', icon: CreditCard, color: 'text-success bg-success/10' },
-          { title: 'Dossiers décès', value: '3', change: 'En cours', icon: AlertTriangle, color: 'text-danger bg-red-50' },
-        ].map((stat, i) => (
-          <motion.div key={stat.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-            <Card>
-              <div className="flex items-start justify-between">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                  <stat.icon size={20} />
-                </div>
-                <span className="flex items-center gap-0.5 text-xs font-medium text-success">
-                  <ArrowUpRight size={12} />
-                  {stat.change}
-                </span>
+      {/* KPI Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <Card>
+            <div className="flex items-start justify-between">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users size={20} className="text-primary" />
               </div>
-              <p className="text-xs text-gray-400 mt-3">{stat.title}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            </Card>
-          </motion.div>
-        ))}
+              <Link to="/admin/utilisateurs">
+                <ArrowUpRight size={15} className="text-primary" />
+              </Link>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Inscrits au total</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : totalUsers}</p>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className={pendingCount > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}>
+            <div className="flex items-start justify-between">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${pendingCount > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                <AlertCircle size={20} className={pendingCount > 0 ? 'text-amber-500' : 'text-gray-400'} />
+              </div>
+              {pendingCount > 0 && (
+                <Link to="/admin/inscriptions" className="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1">
+                  Traiter <ArrowRight size={11} />
+                </Link>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">En attente</p>
+            <p className={`text-3xl font-bold mt-0.5 ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
+              {loading ? '—' : pendingCount}
+            </p>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <Card>
+            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+              <CreditCard size={20} className="text-gray-300" />
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Revenu mensuel</p>
+            <p className="text-3xl font-bold text-gray-300 mt-0.5">—</p>
+            <p className="text-[10px] text-gray-300 mt-0.5">API non disponible</p>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card>
+            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+              <AlertTriangle size={20} className="text-gray-300" />
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Dossiers décès</p>
+            <p className="text-3xl font-bold text-gray-300 mt-0.5">—</p>
+            <p className="text-[10px] text-gray-300 mt-0.5">API non disponible</p>
+          </Card>
+        </motion.div>
       </div>
 
+      {/* Pending quick-approve section */}
+      {!loading && pendingCount > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="border border-amber-200 bg-amber-50/40">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={17} className="text-amber-500" />
+                <h3 className="font-semibold text-gray-900">Inscriptions en attente de validation</h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">{pendingCount}</span>
+              </div>
+              <Link to="/admin/inscriptions" className="text-sm text-primary font-semibold hover:underline flex items-center gap-1">
+                Voir tout <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {pendingRegistrations.map((reg) => (
+                <div key={reg.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    {reg.firstName.charAt(0)}{reg.lastName.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{reg.firstName} {reg.lastName}</p>
+                    <p className="text-xs text-gray-400 truncate">{reg.email} · {reg.residenceCountry}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={reg.planType === 'family' ? 'warning' : 'primary'} size="sm">
+                      {reg.planType === 'family' ? 'Familial' : 'Individuel'}
+                    </Badge>
+                    <button
+                      onClick={() => handleQuickApprove(reg.id)}
+                      disabled={approving === reg.id}
+                      className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1 transition-colors"
+                    >
+                      {approving === reg.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <CheckCircle size={12} />}
+                      Approuver
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Revenue chart */}
+        {/* Inscriptions chart */}
         <div className="lg:col-span-2">
           <Card>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="font-semibold text-gray-900">Revenu mensuel</h3>
-                <p className="text-xs text-gray-400">Évolution sur 7 mois</p>
+                <h3 className="font-semibold text-gray-900">Évolution des inscriptions</h3>
+                <p className="text-xs text-gray-400">Données de démonstration</p>
               </div>
-              <Badge variant="success">+13.1% ce mois</Badge>
+              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg">Demo</span>
             </div>
-            <div className="h-72">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData}>
+                <AreaChart data={inscriptionsData}>
                   <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0F5F43" stopOpacity={0.15} />
+                    <linearGradient id="colorInscrits" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0F5F43" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#0F5F43" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k€`} />
+                  <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                    formatter={(value) => [`${value}€`, 'Revenu']}
+                    formatter={(value) => [value, 'Inscriptions']}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#0F5F43" strokeWidth={2} fill="url(#colorRevenue)" />
+                  <Area type="monotone" dataKey="inscrits" stroke="#0F5F43" strokeWidth={2.5} fill="url(#colorInscrits)" dot={{ fill: '#0F5F43', r: 3 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -117,77 +215,86 @@ export function AdminDashboard() {
 
         {/* Plan distribution */}
         <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">Répartition des plans</h3>
-          <div className="h-52">
+          <h3 className="font-semibold text-gray-900">Répartition des plans</h3>
+          <p className="text-xs text-gray-400 mb-4">Données de démonstration</p>
+          <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={planDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={4}>
+                <Pie data={planDistribution} cx="50%" cy="50%" innerRadius={48} outerRadius={72} dataKey="value" paddingAngle={5}>
                   {planDistribution.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                  formatter={(v) => [`${v}%`, '']}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-2 mt-2">
+          <div className="space-y-3 mt-2">
             {planDistribution.map((plan) => (
-              <div key={plan.name} className="flex items-center justify-between text-sm">
+              <div key={plan.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: plan.color }} />
-                  <span className="text-gray-600">{plan.name}</span>
+                  <span className="text-sm text-gray-600">{plan.name}</span>
                 </div>
-                <span className="font-semibold text-gray-900">{plan.value.toLocaleString()}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${plan.value}%`, backgroundColor: plan.color }} />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 w-10 text-right">{plan.value}%</span>
+                </div>
               </div>
             ))}
           </div>
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Users by country */}
-        <Card>
-          <h3 className="font-semibold text-gray-900 mb-4">Utilisateurs par pays</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={usersByCountry} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis type="number" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="country" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }} />
-                <Bar dataKey="users" fill="#0F5F43" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Recent users */}
+      <Card padding="none">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">Derniers inscrits</h3>
+          <Link to="/admin/utilisateurs" className="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
+            Voir tout <ArrowRight size={12} />
+          </Link>
+        </div>
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 size={20} className="animate-spin text-primary" />
           </div>
-        </Card>
-
-        {/* Recent users */}
-        <Card padding="none">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Inscriptions récentes</h3>
-              <button className="text-xs text-primary font-medium hover:underline">Voir tout</button>
-            </div>
+        ) : recentUsers.length === 0 ? (
+          <div className="flex items-center justify-center p-8">
+            <p className="text-sm text-gray-400">Aucune inscription</p>
           </div>
+        ) : (
           <div className="divide-y divide-gray-50">
-            {recentUsers.map((user) => (
-              <div key={user.email} className="flex items-center gap-3 p-4 hover:bg-gray-50/50">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                  {user.name.split(' ').map((n) => n[0]).join('')}
+            {recentUsers.map((u) => (
+              <div key={u.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                  {u.firstName?.charAt(0)}{u.lastName?.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-400">{user.email}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{u.firstName} {u.lastName}</p>
+                  <p className="text-xs text-gray-400 truncate">{u.email}</p>
                 </div>
-                <div className="text-right">
-                  <Badge variant={planColors[user.plan] as 'primary' | 'neutral' | 'warning' | 'info'} size="sm">{user.plan}</Badge>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{user.date}</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={u.planType === 'family' ? 'warning' : 'primary'} size="sm">
+                    {u.planType === 'family' ? 'Familial' : 'Individuel'}
+                  </Badge>
+                  <Badge
+                    variant={u.registrationStatus === 'approved' ? 'success' : u.registrationStatus === 'rejected' ? 'danger' : 'warning'}
+                    dot size="sm"
+                  >
+                    {u.registrationStatus === 'approved' ? 'Approuvé' : u.registrationStatus === 'rejected' ? 'Rejeté' : 'En attente'}
+                  </Badge>
+                  <p className="text-[10px] text-gray-400">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
-      </div>
+        )}
+      </Card>
     </div>
   );
 }

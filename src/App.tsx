@@ -28,15 +28,9 @@ import { SupportPage } from '@/pages/dashboard/SupportPage';
 import { NotificationsPage } from '@/pages/dashboard/NotificationsPage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 
-import { AssistanceLayout } from '@/components/layout/AssistanceLayout';
-import { AssistanceDashboard } from '@/pages/assistance/AssistanceDashboard';
-import { AssistanceCasesPage } from '@/pages/assistance/AssistanceCasesPage';
-import { AssistanceRapatriementsPage } from '@/pages/assistance/AssistanceRapatriementsPage';
-import { AssistanceManagersPage } from '@/pages/assistance/AssistanceManagersPage';
-import { AssistanceMessagesPage } from '@/pages/assistance/AssistanceMessagesPage';
-
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminRegistrationsPage } from '@/pages/admin/AdminRegistrationsPage';
 import { AdminContractsPage } from '@/pages/admin/AdminContractsPage';
 import { AdminPaymentsPage } from '@/pages/admin/AdminPaymentsPage';
 import { AdminDeathCasesPage } from '@/pages/admin/AdminDeathCasesPage';
@@ -78,19 +72,11 @@ function App() {
             <Route path="parametres" element={<SettingsPage />} />
           </Route>
 
-          {/* Assistance center — protected */}
-          <Route path="/assistance" element={<ProtectedRoute><AssistanceLayout /></ProtectedRoute>}>
-            <Route index element={<AssistanceDashboard />} />
-            <Route path="dossiers" element={<AssistanceCasesPage />} />
-            <Route path="rapatriements" element={<AssistanceRapatriementsPage />} />
-            <Route path="managers" element={<AssistanceManagersPage />} />
-            <Route path="messages" element={<AssistanceMessagesPage />} />
-          </Route>
-
           {/* Admin dashboard — protected (admin only) */}
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="utilisateurs" element={<AdminUsersPage />} />
+            <Route path="inscriptions" element={<AdminRegistrationsPage />} />
             <Route path="contrats" element={<AdminContractsPage />} />
             <Route path="paiements" element={<AdminPaymentsPage />} />
             <Route path="dossiers-deces" element={<AdminDeathCasesPage />} />

@@ -2,34 +2,15 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Shield, CreditCard, FileText, Heart, Gift, AlertTriangle,
-  ArrowRight, CheckCircle, Clock, Download, MapPin,
+  ArrowRight, Clock, MapPin,
   Phone, Mail, ChevronRight, HelpCircle
 } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 
-const documents = [
-  { name: 'Contrat Premium 2026', date: '01.01.2026', type: 'PDF' },
-  { name: 'Appel de cotisation Mars', date: '01.03.2026', type: 'PDF' },
-  { name: 'Attestation d\'assurance', date: '15.01.2026', type: 'PDF' },
-];
-
-const timeline = [
-  { date: '01 Mars 2026', event: 'Paiement mensuel effectué', type: 'payment' as const },
-  { date: '15 Fev 2026', event: 'Document validé par l\'équipe', type: 'document' as const },
-  { date: '01 Fev 2026', event: 'Paiement mensuel effectué', type: 'payment' as const },
-  { date: '20 Jan 2026', event: 'Commission de parrainage reçue', type: 'commission' as const },
-];
-
-const typeIcons = {
-  payment: CreditCard,
-  document: FileText,
-  commission: Gift,
-  contract: Shield,
-};
 
 export function DashboardHome() {
-  const { user } = useAuth();
+  const { user, trustedPersons } = useAuth();
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
   const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
   const apiUrl = import.meta.env.VITE_API_URL || 'https://aldiianacare.online/api';
@@ -124,19 +105,13 @@ export function DashboardHome() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <div className="bg-gold rounded-2xl p-5 h-full">
             <h3 className="text-xs uppercase tracking-wider text-primary/60 font-semibold mb-4">DERNIER VERSEMENT</h3>
-            <p className="text-xs text-primary/70 mb-1">01.03.2026</p>
-            <p className="text-4xl font-bold text-primary mb-4">19,90 €</p>
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle size={16} className="text-primary" />
-              <span className="text-sm font-medium text-primary">Paiement confirmé</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-primary/70">Prochaine échéance</span>
-              <span className="font-bold text-primary">01 Avril 2026</span>
+            <div className="flex flex-col items-center justify-center py-4 text-center">
+              <Clock size={24} className="text-primary/30 mb-2" />
+              <p className="text-sm text-primary/50">Aucun versement enregistré</p>
             </div>
             <div className="mt-3">
               <Link to="/app/paiements" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                TOUS LES VERSEMENTS <ChevronRight size={12} />
+                VOIR LES PAIEMENTS <ChevronRight size={12} />
               </Link>
             </div>
           </div>
@@ -147,9 +122,9 @@ export function DashboardHome() {
           <div className="bg-primary-dark rounded-2xl p-5 text-white h-full" style={{ backgroundColor: '#0a4a34' }}>
             <h3 className="text-xs uppercase tracking-wider text-white/60 font-semibold mb-4">PARRAINAGE</h3>
             <div className="text-center py-2">
-              <p className="text-4xl font-bold text-gold mb-1">3</p>
+              <p className="text-4xl font-bold text-gold mb-1">—</p>
               <p className="text-sm text-white/70 mb-2">filleuls parrainés</p>
-              <p className="text-2xl font-bold text-gold">45 €</p>
+              <p className="text-2xl font-bold text-gold">—</p>
               <p className="text-xs text-white/50 mb-4">de commissions gagnées</p>
             </div>
             <Link to="/app/parrainage">
@@ -169,10 +144,12 @@ export function DashboardHome() {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-secondary">
                 <Shield size={18} className="text-primary" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Premium - Monde</p>
-                  <p className="text-xs text-gray-400">ALC-2026-001234</p>
+                  <p className="text-sm font-medium text-gray-900">{planLabel}</p>
+                  <p className="text-xs text-gray-400">Inscrit le {user ? new Date(user.createdAt).toLocaleDateString('fr-FR') : '—'}</p>
                 </div>
-                <Badge variant="success" dot size="sm">Actif</Badge>
+                <Badge variant={user?.registrationStatus === 'approved' ? 'success' : 'warning'} dot size="sm">
+                  {user?.registrationStatus === 'approved' ? 'Actif' : 'En attente'}
+                </Badge>
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-gray-100">
@@ -187,17 +164,10 @@ export function DashboardHome() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Card className="h-full border-t-4 border-t-gold">
             <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-4">DOCUMENTS</h3>
-            <div className="space-y-2">
-              {documents.map((doc) => (
-                <div key={doc.name} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer group">
-                  <FileText size={16} className="text-gold-dark" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate group-hover:text-primary">{doc.name}</p>
-                    <p className="text-[10px] text-gray-400">{doc.date}</p>
-                  </div>
-                  <Download size={14} className="text-gray-300" />
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <FileText size={28} className="text-gray-200 mb-2" />
+              <p className="text-sm text-gray-400">Aucun document disponible</p>
+              <p className="text-xs text-gray-300 mt-1">Vos documents apparaîtront ici</p>
             </div>
             <div className="mt-3 pt-3 border-t border-gray-100">
               <Link to="/app/documents" className="text-xs font-semibold text-gold-dark hover:underline flex items-center gap-1">
@@ -260,70 +230,57 @@ export function DashboardHome() {
           </div>
         </Card>
 
-        {/* Timeline */}
+        {/* Activité récente */}
         <div className="lg:col-span-2">
           <Card>
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-semibold text-gray-900">Activité récente</h3>
-              <button className="text-xs text-primary font-medium hover:underline">Voir tout</button>
             </div>
-            <div className="space-y-4">
-              {timeline.map((item, i) => {
-                const Icon = typeIcons[item.type];
-                return (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="relative">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        item.type === 'payment' ? 'bg-success/10 text-success' :
-                        item.type === 'document' ? 'bg-info/10 text-info' :
-                        item.type === 'commission' ? 'bg-gold/10 text-gold-dark' :
-                        'bg-primary/10 text-primary'
-                      }`}>
-                        <Icon size={16} />
-                      </div>
-                      {i < timeline.length - 1 && (
-                        <div className="absolute top-9 left-1/2 -translate-x-1/2 w-px h-5 bg-gray-100" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 pt-1">
-                      <p className="text-sm text-gray-900 font-medium">{item.event}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{item.date}</p>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Clock size={32} className="text-gray-200 mb-3" />
+              <p className="text-sm text-gray-400">Aucune activité récente</p>
+              <p className="text-xs text-gray-300 mt-1">Vos paiements et actions apparaîtront ici</p>
             </div>
           </Card>
         </div>
       </div>
 
-      {/* Personne de confiance */}
+      {/* Personne(s) de confiance */}
       <Card className="border-l-4 border-l-gold">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Clock size={20} className="text-gold-dark" />
-            <h3 className="font-semibold text-gray-900">Personne de confiance</h3>
+            <Heart size={20} className="text-gold-dark" />
+            <h3 className="font-semibold text-gray-900">Personne(s) de confiance</h3>
           </div>
           <Link to="/app/personne-confiance">
             <Button variant="ghost" size="sm">Modifier</Button>
           </Link>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-12 h-12 rounded-xl bg-gold/15 flex items-center justify-center">
-              <Heart size={20} className="text-gold-dark" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Fatou Diallo</p>
-              <p className="text-xs text-gray-400">Soeur</p>
-            </div>
+        {trustedPersons.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <p className="text-sm text-gray-400">Aucune personne de confiance enregistrée</p>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <span className="flex items-center gap-1"><Phone size={12} /> +33 6 12 34 56 78</span>
-            <span className="flex items-center gap-1"><Mail size={12} /> fatou@email.com</span>
-            <Badge variant="success" dot size="sm">Vérifié</Badge>
+        ) : (
+          <div className="space-y-3">
+            {trustedPersons.map((tp) => (
+              <div key={tp.id} className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center">
+                    <Heart size={16} className="text-gold-dark" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{tp.firstName} {tp.lastName}</p>
+                    <p className="text-xs text-gray-400 capitalize">{tp.relation}{tp.relationDetails ? ` — ${tp.relationDetails}` : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1"><Phone size={12} /> {tp.phone}</span>
+                  {tp.email && <span className="flex items-center gap-1"><Mail size={12} /> {tp.email}</span>}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </Card>
     </div>
   );

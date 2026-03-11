@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageLoader } from '@/components/ui';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,14 +12,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-secondary">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">Chargement...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {

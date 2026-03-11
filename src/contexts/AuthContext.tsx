@@ -8,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string; registrationStatus?: string; rejectionReason?: string | null }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string; registrationStatus?: string; rejectionReason?: string | null; userRole?: 'user' | 'admin' }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           // Non-blocking, profile already set
         }
-        return { success: true, message: res.message };
+        return { success: true, message: res.message, userRole: userData.role };
       }
       return { success: false, message: res.message };
     } catch (err: unknown) {

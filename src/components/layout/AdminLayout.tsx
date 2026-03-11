@@ -8,16 +8,18 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Logo } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 const adminLinks = [
-  { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-  { label: 'Utilisateurs', path: '/admin/utilisateurs', icon: Users },
-  { label: 'Contrats', path: '/admin/contrats', icon: FileText },
-  { label: 'Paiements', path: '/admin/paiements', icon: CreditCard },
-  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: AlertTriangle },
-  { label: 'Commissions', path: '/admin/commissions', icon: Gift },
-  { label: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
-  { label: 'Paramètres', path: '/admin/parametres', icon: Settings },
+  { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, available: true },
+  { label: 'Inscriptions', path: '/admin/inscriptions', icon: FileText, available: true },
+  { label: 'Utilisateurs', path: '/admin/utilisateurs', icon: Users, available: true },
+  { label: 'Paramètres', path: '/admin/parametres', icon: Settings, available: true },
+  { label: 'Contrats', path: '/admin/contrats', icon: FileText, available: false },
+  { label: 'Paiements', path: '/admin/paiements', icon: CreditCard, available: false },
+  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: AlertTriangle, available: false },
+  { label: 'Commissions', path: '/admin/commissions', icon: Gift, available: false },
+  { label: 'Analytics', path: '/admin/analytics', icon: BarChart3, available: false },
 ];
 
 export function AdminLayout() {
@@ -26,6 +28,11 @@ export function AdminLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useStore();
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -56,6 +63,23 @@ export function AdminLayout() {
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {adminLinks.map((link) => {
             const isActive = location.pathname === link.path;
+            if (!link.available) {
+              return (
+                <div
+                  key={link.path}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 cursor-not-allowed opacity-50"
+                  title={!sidebarOpen ? `${link.label} (API non disponible)` : undefined}
+                >
+                  <link.icon size={18} />
+                  {sidebarOpen && (
+                    <>
+                      <span>{link.label}</span>
+                      <span className="ml-auto text-[10px] bg-gray-800 px-2 py-0.5 rounded">Bientôt</span>
+                    </>
+                  )}
+                </div>
+              );
+            }
             return (
               <Link
                 key={link.path}
@@ -74,14 +98,20 @@ export function AdminLayout() {
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-800">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-800 hover:text-white font-medium"
+        <div className="p-3 border-t border-gray-800 space-y-1">
+          {sidebarOpen && user && (
+            <div className="px-3 py-2 mb-1">
+              <p className="text-xs font-semibold text-white truncate">{user.firstName} {user.lastName}</p>
+              <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-800 hover:text-white font-medium transition-colors"
           >
             <LogOut size={18} />
             {sidebarOpen && <span>Déconnexion</span>}
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -119,6 +149,18 @@ export function AdminLayout() {
               <nav className="flex-1 py-4 px-3 space-y-1">
                 {adminLinks.map((link) => {
                   const isActive = location.pathname === link.path;
+                  if (!link.available) {
+                    return (
+                      <div
+                        key={link.path}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 cursor-not-allowed opacity-50"
+                      >
+                        <link.icon size={18} />
+                        <span>{link.label}</span>
+                        <span className="ml-auto text-[10px] bg-gray-800 px-2 py-0.5 rounded">Bientôt</span>
+                      </div>
+                    );
+                  }
                   return (
                     <Link
                       key={link.path}
@@ -134,6 +176,15 @@ export function AdminLayout() {
                   );
                 })}
               </nav>
+              <div className="p-3 border-t border-gray-800">
+                <button
+                  onClick={() => { setMobileOpen(false); handleLogout(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-800 hover:text-white font-medium transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>Déconnexion</span>
+                </button>
+              </div>
             </motion.aside>
           </>
         )}
@@ -179,9 +230,12 @@ export function AdminLayout() {
                     <Link to="/admin/parametres" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
                       <Settings size={14} /> Paramètres
                     </Link>
-                    <Link to="/" className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    <button
+                      onClick={() => { setProfileOpen(false); handleLogout(); }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
                       <LogOut size={14} /> Déconnexion
-                    </Link>
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
