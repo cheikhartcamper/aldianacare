@@ -6,6 +6,7 @@ import {
   Phone, Mail, ChevronRight, HelpCircle
 } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 const documents = [
   { name: 'Contrat Premium 2026', date: '01.01.2026', type: 'PDF' },
@@ -28,6 +29,12 @@ const typeIcons = {
 };
 
 export function DashboardHome() {
+  const { user } = useAuth();
+  const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
+  const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://aldiianacare.online/api';
+  const baseUrl = apiUrl.replace('/api', '');
+
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
@@ -37,20 +44,26 @@ export function DashboardHome() {
           <div className="absolute bottom-0 left-1/2 w-32 h-32 bg-gold/10 rounded-full blur-2xl" />
           <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
-              <img
-                src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?w=80&h=80&fit=crop&crop=face"
-                alt="Amadou"
-                className="w-16 h-16 rounded-2xl border-2 border-gold/50 object-cover hidden sm:block"
-              />
+              {user?.identityPhotoPath ? (
+                <img
+                  src={`${baseUrl}${user.identityPhotoPath}`}
+                  alt={displayName}
+                  className="w-16 h-16 rounded-2xl border-2 border-gold/50 object-cover hidden sm:block"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl border-2 border-gold/50 bg-white/15 flex items-center justify-center hidden sm:block">
+                  <span className="text-xl font-bold text-white">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
+                </div>
+              )}
               <div>
                 <p className="text-white/60 text-sm">Bonjour,</p>
-                <h1 className="text-2xl font-bold">M. Amadou DIALLO</h1>
+                <h1 className="text-2xl font-bold">{displayName}</h1>
                 <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
-                  <span className="flex items-center gap-1"><MapPin size={12} /> 12 Rue de la Paix, 75001 Paris</span>
+                  <span className="flex items-center gap-1"><MapPin size={12} /> {user?.residenceAddress || 'Adresse non renseignée'}</span>
                 </div>
                 <div className="flex items-center gap-4 mt-1 text-sm text-white/70">
-                  <span className="flex items-center gap-1"><Mail size={12} /> amadou@email.com</span>
-                  <span className="flex items-center gap-1"><Phone size={12} /> +33 6 12 34 56 78</span>
+                  <span className="flex items-center gap-1"><Mail size={12} /> {user?.email}</span>
+                  <span className="flex items-center gap-1"><Phone size={12} /> {user?.phone}</span>
                 </div>
               </div>
             </div>
@@ -84,12 +97,16 @@ export function DashboardHome() {
               <div className="flex justify-between text-sm">
                 <span className="text-white/70">Formule</span>
                 <span className="font-semibold flex items-center gap-1">
-                  <Shield size={12} /> Premium
+                  <Shield size={12} /> {planLabel}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-white/70">Statut</span>
-                <span className="bg-gold/20 text-gold px-2 py-0.5 rounded-full text-xs font-bold">Actif</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  user?.registrationStatus === 'approved' ? 'bg-gold/20 text-gold' :
+                  user?.registrationStatus === 'pending' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-red-500/20 text-red-300'
+                }`}>{user?.registrationStatus === 'approved' ? 'Actif' : user?.registrationStatus === 'pending' ? 'En attente' : 'Rejeté'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-white/70">Validité</span>

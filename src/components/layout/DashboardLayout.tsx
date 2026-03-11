@@ -7,6 +7,7 @@ import {
   Moon, Sun, AlertTriangle, FolderOpen, User
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge, Logo } from '@/components/ui';
 
 const mainLinks = [
@@ -89,6 +90,10 @@ export function DashboardLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const { isDarkMode, toggleDarkMode, notifications } = useStore();
+  const { user, logout } = useAuth();
+  const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
+  const shortName = user ? `${user.firstName} ${user.lastName.charAt(0)}.` : '';
+  const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
@@ -109,8 +114,8 @@ export function DashboardLayout() {
               <User size={16} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-white truncate">Amadou Diallo</p>
-              <p className="text-[11px] text-white/40 font-medium">Premium</p>
+              <p className="text-[13px] font-semibold text-white truncate">{displayName}</p>
+              <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
             </div>
           </div>
         </div>
@@ -131,15 +136,15 @@ export function DashboardLayout() {
             </div>
             <span>Paramètres</span>
           </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all"
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all"
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center">
               <LogOut size={16} strokeWidth={1.8} />
             </div>
             <span>Déconnexion</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -177,8 +182,8 @@ export function DashboardLayout() {
                     <User size={16} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold text-white">Amadou Diallo</p>
-                    <p className="text-[11px] text-white/40 font-medium">Premium</p>
+                    <p className="text-[13px] font-semibold text-white">{displayName}</p>
+                    <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
                   </div>
                 </div>
               </div>
@@ -188,15 +193,15 @@ export function DashboardLayout() {
               </div>
 
               <div className="p-2 border-t border-white/10">
-                <Link
-                  to="/"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all"
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all"
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                     <LogOut size={16} />
                   </div>
                   <span>Déconnexion</span>
-                </Link>
+                </button>
               </div>
             </motion.aside>
           </>
@@ -212,7 +217,7 @@ export function DashboardLayout() {
               <Menu size={20} />
             </button>
             <h1 className="text-sm font-medium text-gray-500 hidden sm:block">
-              Bienvenue, <span className="text-gray-900 font-semibold">Amadou Diallo</span>
+              Bienvenue, <span className="text-gray-900 font-semibold">{displayName}</span>
             </h1>
           </div>
 
@@ -242,8 +247,8 @@ export function DashboardLayout() {
                   <User size={15} className="text-primary" />
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold text-gray-900">Amadou D.</p>
-                  <p className="text-[10px] text-gray-400">Premium</p>
+                  <p className="text-xs font-semibold text-gray-900">{shortName}</p>
+                  <p className="text-[10px] text-gray-400">{planLabel}</p>
                 </div>
                 <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
               </button>
@@ -257,17 +262,17 @@ export function DashboardLayout() {
                     className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50"
                   >
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-900">Amadou Diallo</p>
-                      <p className="text-xs text-gray-400">amadou@email.com</p>
-                      <Badge variant="primary" size="sm">Premium</Badge>
+                      <p className="text-sm font-semibold text-gray-900">{displayName}</p>
+                      <p className="text-xs text-gray-400">{user?.email}</p>
+                      <Badge variant="primary" size="sm">{planLabel}</Badge>
                     </div>
                     <div className="py-1">
                       <Link to="/app/parametres" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
                         <Settings size={14} /> Paramètres
                       </Link>
-                      <Link to="/" className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                      <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                         <LogOut size={14} /> Déconnexion
-                      </Link>
+                      </button>
                     </div>
                   </motion.div>
                 )}

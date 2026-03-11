@@ -3,29 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Shield, CheckCircle, ArrowRight, ArrowLeft, User, Mail, Phone,
-  MapPin, Calendar, Camera, Upload, FileText, Users, CreditCard,
-  PenTool, Sparkles, Gift, Eye, X, Check, Globe
+  MapPin, Camera, Upload, FileText, Users,
+  Sparkles, Eye, EyeOff, X, Check, Lock, AlertTriangle, Loader2
 } from 'lucide-react';
 import { Button, Card, Input } from '@/components/ui';
 import { Logo } from '@/components/ui';
-
-const TOTAL_STEPS = 9;
-
-const stepLabels = [
-  'Formule',
-  'Informations',
-  'Photo',
-  'Documents',
-  'Personne de confiance',
-  'Sponsor',
-  'Paiement',
-  'Signature',
-  'Confirmation',
-];
+import { authService } from '@/services/auth.service';
 
 const plans = [
   {
     id: 'individuelle',
+    apiType: 'individual' as const,
     name: 'Individuelle',
     price: '15',
     priceAnnual: '140',
@@ -36,6 +24,7 @@ const plans = [
   },
   {
     id: 'pathologie',
+    apiType: 'individual' as const,
     name: 'Pathologie',
     price: '30',
     priceAnnual: '280',
@@ -46,6 +35,7 @@ const plans = [
   },
   {
     id: 'family',
+    apiType: 'family' as const,
     name: 'Aldiana Family',
     price: '50',
     priceAnnual: '450',
@@ -54,99 +44,218 @@ const plans = [
     features: ['Tout Individuelle +', 'Jusqu\'à 5 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
     popular: true,
   },
-  {
-    id: 'option-risque',
-    name: 'Option Indemnité de Risque',
-    price: '+25',
-    priceAnnual: '+250',
-    period: '/mois',
-    desc: 'Pandémie, guerre, nucléaire',
-    features: ['En complément des formules', 'Couverture pandémie', 'Couverture guerre', 'Risque nucléaire'],
-    popular: false,
-    isOption: true,
-  },
 ];
 
+interface TrustedPersonForm {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  relation: string;
+  relationDetails: string;
+}
+
+interface FamilyMemberForm {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  residenceCountry: string;
+  residenceAddress: string;
+  repatriationCountry: string;
+}
+
+const emptyTrusted: TrustedPersonForm = { firstName: '', lastName: '', phone: '', email: '', relation: '', relationDetails: '' };
+const emptyMember: FamilyMemberForm = { firstName: '', lastName: '', dateOfBirth: '', email: '', phone: '', password: '', confirmPassword: '', residenceCountry: '', residenceAddress: '', repatriationCountry: '' };
+
 export function OnboardingPage() {
-  const [step, setStep] = useState(1);
-  const [selectedPlan, setSelectedPlan] = useState('');
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [idPreview, setIdPreview] = useState<string | null>(null);
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
-  const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw');
-  const [sponsorCode, setSponsorCode] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const navigate = useNavigate();
 
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const idInputRef = useRef<HTMLInputElement>(null);
-  const signInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Step management
+  const [step, setStep] = useState(1);
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // OTP state
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+
+  // Personal info
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [maritalStatus, setMaritalStatus] = useState('');
+  const [residenceCountry, setResidenceCountry] = useState('');
+  const [residenceAddress, setResidenceAddress] = useState('');
+  const [repatriationCountry, setRepatriationCountry] = useState('');
+
+  // Files
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [cniRectoFile, setCniRectoFile] = useState<File | null>(null);
+  const [cniRectoPreview, setCniRectoPreview] = useState<string | null>(null);
+  const [cniVersoFile, setCniVersoFile] = useState<File | null>(null);
+  const [cniVersoPreview, setCniVersoPreview] = useState<string | null>(null);
+
+  // Trusted persons
+  const [trustedPersons, setTrustedPersons] = useState<TrustedPersonForm[]>([{ ...emptyTrusted }]);
+
+  // Family members (for family plan)
+  const [familyMembers, setFamilyMembers] = useState<FamilyMemberForm[]>([{ ...emptyMember }]);
+  const [memberCniFiles, setMemberCniFiles] = useState<Record<string, File>>({});
+
+  // Refs
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cniRectoRef = useRef<HTMLInputElement>(null);
+  const cniVersoRef = useRef<HTMLInputElement>(null);
+
+  // Determine steps based on plan
+  const isFamily = selectedPlan === 'family';
+  const stepLabels = isFamily
+    ? ['Formule', 'Téléphone', 'Informations', 'Documents', 'Personne de confiance', 'Famille', 'Récapitulatif', 'Confirmation']
+    : ['Formule', 'Téléphone', 'Informations', 'Documents', 'Personne de confiance', 'Récapitulatif', 'Confirmation'];
+  const TOTAL_STEPS = stepLabels.length;
   const progress = (step / TOTAL_STEPS) * 100;
 
-  const nextStep = () => { if (step < TOTAL_STEPS) setStep(step + 1); };
-  const prevStep = () => { if (step > 1) setStep(step - 1); };
+  const nextStep = () => { if (step < TOTAL_STEPS) { setError(''); setStep(step + 1); } };
+  const prevStep = () => { if (step > 1) { setError(''); setStep(step - 1); } };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+  // OTP countdown timer
+  const startOtpCountdown = () => {
+    setOtpCountdown(60);
+    const interval = setInterval(() => {
+      setOtpCountdown((prev) => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
-  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setIdPreview(reader.result as string);
-      reader.readAsDataURL(file);
+  // Send OTP
+  const handleSendOtp = async () => {
+    if (!otpPhone || otpPhone.length < 8) {
+      setError('Veuillez entrer un numéro de téléphone valide (min 8 chiffres).');
+      return;
     }
-  };
-
-  const handleSignUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setSignaturePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        setSignaturePreview(null);
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const res = await authService.sendOtp(otpPhone);
+      if (res.success) {
+        setOtpSent(true);
+        startOtpCountdown();
       }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e.response?.data?.message || 'Erreur lors de l\'envoi du code OTP.');
+    }
+    setIsSubmitting(false);
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setError('Veuillez entrer le code à 6 chiffres.');
+      return;
+    }
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const res = await authService.verifyOtp(otpPhone, otpCode);
+      if (res.success) {
+        setPhoneVerificationToken(res.data.phoneVerificationToken);
+        setOtpVerified(true);
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e.response?.data?.message || 'Code OTP incorrect.');
+    }
+    setIsSubmitting(false);
+  };
+
+  // File upload handlers
+  const handleFileUpload = (setter: (f: File | null) => void, previewSetter: (s: string | null) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setter(file);
+      const reader = new FileReader();
+      reader.onloadend = () => previewSetter(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.beginPath();
-    const rect = canvas.getBoundingClientRect();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    canvas.onmousemove = (ev) => {
-      ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    };
-    canvas.onmouseup = () => {
-      canvas.onmousemove = null;
-      setSignaturePreview(canvas.toDataURL());
-    };
+  // Trusted person helpers
+  const updateTrusted = (index: number, field: keyof TrustedPersonForm, value: string) => {
+    setTrustedPersons(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
   };
+  const addTrusted = () => { if (trustedPersons.length < 3) setTrustedPersons(prev => [...prev, { ...emptyTrusted }]); };
+  const removeTrusted = (index: number) => { if (trustedPersons.length > 1) setTrustedPersons(prev => prev.filter((_, i) => i !== index)); };
+
+  // Family member helpers
+  const updateMember = (index: number, field: keyof FamilyMemberForm, value: string) => {
+    setFamilyMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  };
+  const addMember = () => { if (familyMembers.length < 4) setFamilyMembers(prev => [...prev, { ...emptyMember }]); };
+  const removeMember = (index: number) => { if (familyMembers.length > 1) setFamilyMembers(prev => prev.filter((_, i) => i !== index)); };
+
+  // Submit registration
+  const handleSubmit = async () => {
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('firstName', firstName);
+      formData.append('lastName', lastName);
+      formData.append('email', email);
+      formData.append('phone', otpPhone);
+      formData.append('password', password);
+      formData.append('confirmPassword', confirmPassword);
+      formData.append('maritalStatus', maritalStatus);
+      formData.append('residenceCountry', residenceCountry);
+      formData.append('residenceAddress', residenceAddress);
+      formData.append('repatriationCountry', repatriationCountry);
+      formData.append('phoneVerificationToken', phoneVerificationToken);
+      formData.append('trustedPersons', JSON.stringify(trustedPersons));
+
+      if (photoFile) formData.append('identityPhoto', photoFile);
+      if (cniRectoFile) formData.append('cniRecto', cniRectoFile);
+      if (cniVersoFile) formData.append('cniVerso', cniVersoFile);
+
+      if (isFamily) {
+        formData.append('familyMemberCount', String(familyMembers.length));
+        formData.append('familyMembers', JSON.stringify(familyMembers));
+        // Append member CNI files
+        Object.entries(memberCniFiles).forEach(([key, file]) => {
+          formData.append(key, file);
+        });
+        const res = await authService.registerFamily(formData);
+        if (res.success) nextStep();
+      } else {
+        const res = await authService.registerIndividual(formData);
+        if (res.success) nextStep();
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; errors?: string[] } } };
+      const msgs = e.response?.data?.errors;
+      setError(msgs?.join(', ') || e.response?.data?.message || 'Erreur lors de l\'inscription.');
+    }
+    setIsSubmitting(false);
+  };
+
+  // Determine the review step number and confirmation step number
+  const reviewStep = isFamily ? 7 : 6;
+  const confirmStep = isFamily ? 8 : 7;
 
   return (
     <div className="min-h-screen bg-surface-secondary">
@@ -287,453 +396,391 @@ export function OnboardingPage() {
               </div>
             )}
 
-            {/* ===== STEP 2: Informations personnelles ===== */}
+            {/* ===== STEP 2: Vérification téléphone (OTP) ===== */}
             {step === 2 && (
+              <div>
+                <div className="text-center mb-8">
+                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
+                    <Phone size={28} className="text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Vérification du téléphone</h2>
+                  <p className="text-sm text-gray-500">Nous allons vérifier votre numéro via WhatsApp</p>
+                </div>
+
+                {error && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2 mb-4">
+                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+
+                <Card>
+                  <div className="space-y-6">
+                    <div>
+                      <Input
+                        label="Numéro de téléphone (avec indicatif)"
+                        type="tel"
+                        placeholder="+33 6 12 34 56 78"
+                        icon={<Phone size={16} />}
+                        value={otpPhone}
+                        onChange={(e) => setOtpPhone(e.target.value)}
+                        disabled={otpVerified}
+                      />
+                    </div>
+
+                    {!otpSent && !otpVerified && (
+                      <Button variant="primary" fullWidth onClick={handleSendOtp} disabled={isSubmitting}>
+                        {isSubmitting ? <><Loader2 size={16} className="animate-spin mr-2" /> Envoi en cours...</> : 'Envoyer le code OTP'}
+                      </Button>
+                    )}
+
+                    {otpSent && !otpVerified && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Code OTP (6 chiffres)</label>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="000000"
+                            className="w-full text-center text-2xl font-mono tracking-[0.5em] rounded-xl border border-gray-200 px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          />
+                        </div>
+                        <Button variant="gold" fullWidth onClick={handleVerifyOtp} disabled={isSubmitting || otpCode.length !== 6}>
+                          {isSubmitting ? <><Loader2 size={16} className="animate-spin mr-2" /> Vérification...</> : 'Vérifier le code'}
+                        </Button>
+                        <div className="text-center">
+                          {otpCountdown > 0 ? (
+                            <p className="text-xs text-gray-400">Renvoyer le code dans {otpCountdown}s</p>
+                          ) : (
+                            <button onClick={handleSendOtp} className="text-xs text-primary font-medium hover:underline" disabled={isSubmitting}>
+                              Renvoyer le code
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {otpVerified && (
+                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
+                        <CheckCircle size={32} className="text-primary mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-primary">Numéro vérifié avec succès !</p>
+                        <p className="text-xs text-gray-500 mt-1">{otpPhone}</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* ===== STEP 3: Informations personnelles + mot de passe ===== */}
+            {step === 3 && (
               <div>
                 <div className="text-center mb-8">
                   <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
                     <User size={28} className="text-primary" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Vos informations personnelles</h2>
-                  <p className="text-sm text-gray-500">Remplissez vos coordonnées pour créer votre contrat</p>
+                  <p className="text-sm text-gray-500">Remplissez vos coordonnées pour créer votre compte</p>
                 </div>
 
                 <Card>
                   <div className="space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Prénom" placeholder="Votre prénom" icon={<User size={16} />} />
-                      <Input label="Nom" placeholder="Votre nom de famille" icon={<User size={16} />} />
+                      <Input label="Prénom" placeholder="Votre prénom" icon={<User size={16} />} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                      <Input label="Nom" placeholder="Votre nom de famille" icon={<User size={16} />} value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                     </div>
+                    <Input label="Email" type="email" placeholder="votre@email.com" icon={<Mail size={16} />} value={email} onChange={(e) => setEmail(e.target.value)} required />
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Date de naissance" type="date" icon={<Calendar size={16} />} />
-                      <Input label="Lieu de naissance" placeholder="Ville, Pays" icon={<MapPin size={16} />} />
+                      <div className="relative">
+                        <Input label="Mot de passe" type={showPassword ? 'text' : 'password'} placeholder="Min 8 car., 1 maj, 1 chiffre, 1 spécial" icon={<Lock size={16} />} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600">
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      <Input label="Confirmer le mot de passe" type={showPassword ? 'text' : 'password'} placeholder="Retapez votre mot de passe" icon={<Lock size={16} />} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
                     </div>
-                    <Input label="Email" type="email" placeholder="votre@email.com" icon={<Mail size={16} />} />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Situation matrimoniale</label>
+                      <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white" required>
+                        <option value="">Sélectionnez</option>
+                        <option value="celibataire">Célibataire</option>
+                        <option value="marie">Marié(e)</option>
+                        <option value="divorce">Divorcé(e)</option>
+                        <option value="veuf">Veuf/Veuve</option>
+                        <option value="separe">Séparé(e)</option>
+                        <option value="union_libre">Union libre</option>
+                      </select>
+                    </div>
+                    <Input label="Adresse de résidence" placeholder="Adresse complète" icon={<MapPin size={16} />} value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} required />
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Téléphone" type="tel" placeholder="+33 6 12 34 56 78" icon={<Phone size={16} />} />
-                      <Input label="Nationalité" placeholder="Ex: Sénégalaise" icon={<MapPin size={16} />} />
-                    </div>
-                    <Input label="Adresse de résidence" placeholder="Adresse complète" icon={<MapPin size={16} />} />
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <Input label="Code postal" placeholder="75001" />
-                      <Input label="Ville" placeholder="Paris" />
-                      <Input label="Pays de résidence" placeholder="France" />
+                      <Input label="Pays de résidence" placeholder="France" icon={<MapPin size={16} />} value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} required />
+                      <Input label="Pays de rapatriement" placeholder="Sénégal" icon={<MapPin size={16} />} value={repatriationCountry} onChange={(e) => setRepatriationCountry(e.target.value)} required />
                     </div>
                   </div>
                 </Card>
               </div>
             )}
 
-            {/* ===== STEP 3: Photo du souscripteur ===== */}
-            {step === 3 && (
+            {/* ===== STEP 4: Photo + CNI ===== */}
+            {step === 4 && (
               <div>
                 <div className="text-center mb-8">
                   <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
                     <Camera size={28} className="text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Photo du souscripteur</h2>
-                  <p className="text-sm text-gray-500">Prenez une photo ou importez une image récente de vous</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Photo & Documents</h2>
+                  <p className="text-sm text-gray-500">Photo d'identité et pièce d'identité (CNI)</p>
                 </div>
 
-                <Card className="text-center">
-                  {photoPreview ? (
-                    <div className="relative inline-block">
-                      <img src={photoPreview} alt="Photo souscripteur" className="w-48 h-48 rounded-2xl object-cover mx-auto border-4 border-primary/20" />
-                      <button
-                        onClick={() => setPhotoPreview(null)}
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                      >
-                        <X size={14} />
-                      </button>
-                      <p className="text-sm text-primary font-medium mt-4 flex items-center justify-center gap-1">
-                        <CheckCircle size={14} /> Photo ajoutée avec succès
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="py-8">
-                      <div className="w-32 h-32 mx-auto rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center mb-6">
-                        <Camera size={40} className="text-gray-300" />
+                <div className="space-y-6">
+                  {/* Photo d'identité */}
+                  <Card>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2"><Camera size={16} className="text-primary" /> Photo d'identité</h3>
+                    {photoPreview ? (
+                      <div className="relative inline-block">
+                        <img src={photoPreview} alt="Photo" className="w-40 h-40 rounded-2xl object-cover mx-auto border-4 border-primary/20" />
+                        <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"><X size={14} /></button>
+                        <p className="text-xs text-primary font-medium mt-3 flex items-center justify-center gap-1"><CheckCircle size={12} /> Photo ajoutée</p>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Button
-                          variant="primary"
-                          icon={<Camera size={16} />}
-                          onClick={() => photoInputRef.current?.click()}
-                        >
-                          Prendre une photo
-                        </Button>
-                        <Button
-                          variant="outline"
-                          icon={<Upload size={16} />}
-                          onClick={() => photoInputRef.current?.click()}
-                        >
-                          Importer une image
-                        </Button>
+                    ) : (
+                      <div className="text-center">
+                        <div className="w-28 h-28 mx-auto rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center mb-4"><Camera size={32} className="text-gray-300" /></div>
+                        <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => photoInputRef.current?.click()}>Importer une photo</Button>
+                        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload(setPhotoFile, setPhotoPreview)} />
+                        <p className="text-[10px] text-gray-400 mt-2">JPEG, PNG, WEBP — Max 5 Mo</p>
                       </div>
-                      <input
-                        ref={photoInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="user"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                      />
-                      <p className="text-[11px] text-gray-400 mt-4">Format accepté : JPG, PNG. Taille max : 5 Mo</p>
-                    </div>
-                  )}
-                </Card>
+                    )}
+                  </Card>
+
+                  {/* CNI Recto */}
+                  <Card>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2"><FileText size={16} className="text-primary" /> CNI — Recto</h3>
+                    {cniRectoPreview ? (
+                      <div className="relative">
+                        <img src={cniRectoPreview} alt="CNI Recto" className="w-full max-h-48 object-contain rounded-xl border border-gray-200" />
+                        <button onClick={() => { setCniRectoFile(null); setCniRectoPreview(null); }} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <div onClick={() => cniRectoRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
+                        <Upload size={28} className="mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm font-medium text-gray-600">Importer le recto</p>
+                        <p className="text-[10px] text-gray-400 mt-1">JPEG, PNG, WEBP — Max 5 Mo</p>
+                      </div>
+                    )}
+                    <input ref={cniRectoRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload(setCniRectoFile, setCniRectoPreview)} />
+                  </Card>
+
+                  {/* CNI Verso */}
+                  <Card>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2"><FileText size={16} className="text-primary" /> CNI — Verso</h3>
+                    {cniVersoPreview ? (
+                      <div className="relative">
+                        <img src={cniVersoPreview} alt="CNI Verso" className="w-full max-h-48 object-contain rounded-xl border border-gray-200" />
+                        <button onClick={() => { setCniVersoFile(null); setCniVersoPreview(null); }} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <div onClick={() => cniVersoRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
+                        <Upload size={28} className="mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm font-medium text-gray-600">Importer le verso</p>
+                        <p className="text-[10px] text-gray-400 mt-1">JPEG, PNG, WEBP — Max 5 Mo</p>
+                      </div>
+                    )}
+                    <input ref={cniVersoRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload(setCniVersoFile, setCniVersoPreview)} />
+                  </Card>
+                </div>
               </div>
             )}
 
-            {/* ===== STEP 4: Documents d'identité ===== */}
-            {step === 4 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <FileText size={28} className="text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Pièce d'identité & documents</h2>
-                  <p className="text-sm text-gray-500">Photographiez ou importez votre pièce d'identité en cours de validité</p>
-                </div>
-
-                <Card>
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Type de document</label>
-                      <select className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white">
-                        <option value="">Sélectionnez le type</option>
-                        <option value="passport">Passeport</option>
-                        <option value="cni">Carte nationale d'identité</option>
-                        <option value="titre_sejour">Titre de séjour</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3">Recto du document</label>
-                      {idPreview ? (
-                        <div className="relative">
-                          <img src={idPreview} alt="Document" className="w-full max-h-64 object-contain rounded-xl border border-gray-200" />
-                          <button
-                            onClick={() => setIdPreview(null)}
-                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          onClick={() => idInputRef.current?.click()}
-                          className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
-                        >
-                          <Upload size={32} className="mx-auto mb-3 text-gray-300" />
-                          <p className="text-sm font-medium text-gray-600">Cliquez pour importer ou photographier</p>
-                          <p className="text-[11px] text-gray-400 mt-1">JPG, PNG ou PDF — Max 10 Mo</p>
-                        </div>
-                      )}
-                      <input
-                        ref={idInputRef}
-                        type="file"
-                        accept="image/*,.pdf"
-                        capture="environment"
-                        className="hidden"
-                        onChange={handleIdUpload}
-                      />
-                    </div>
-
-                    <div>
-                      <Input label="Numéro du document" placeholder="Ex: 12AB34567" icon={<FileText size={16} />} />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Date de délivrance" type="date" icon={<Calendar size={16} />} />
-                      <Input label="Date d'expiration" type="date" icon={<Calendar size={16} />} />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {/* ===== STEP 5: Personne de confiance ===== */}
+            {/* ===== STEP 5: Personne(s) de confiance ===== */}
             {step === 5 && (
               <div>
                 <div className="text-center mb-8">
                   <div className="w-14 h-14 mx-auto mb-4 bg-gold/10 rounded-2xl flex items-center justify-center">
                     <Users size={28} className="text-gold-dark" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Personne de confiance</h2>
-                  <p className="text-sm text-gray-500">Désignez une personne à contacter en cas de besoin</p>
-                </div>
-
-                <Card>
-                  <div className="p-3 rounded-xl bg-gold/5 border border-gold/20 mb-6">
-                    <p className="text-xs text-gold-dark leading-relaxed">
-                      <strong>Important :</strong> Cette personne sera votre contact principal en cas de déclenchement de votre contrat. 
-                      Elle recevra les informations relatives au rapatriement et à l'assistance funéraire.
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Prénom" placeholder="Prénom de la personne" icon={<User size={16} />} />
-                      <Input label="Nom" placeholder="Nom de la personne" icon={<User size={16} />} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Lien de parenté</label>
-                      <select className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white">
-                        <option value="">Sélectionnez</option>
-                        <option value="conjoint">Conjoint(e)</option>
-                        <option value="parent">Parent (père/mère)</option>
-                        <option value="enfant">Enfant</option>
-                        <option value="frere_soeur">Frère / Sœur</option>
-                        <option value="autre">Autre membre de la famille</option>
-                        <option value="ami">Ami(e) proche</option>
-                      </select>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Téléphone" type="tel" placeholder="+221 77 123 45 67" icon={<Phone size={16} />} />
-                      <Input label="Email" type="email" placeholder="email@exemple.com" icon={<Mail size={16} />} />
-                    </div>
-                    <Input label="Adresse" placeholder="Adresse complète" icon={<MapPin size={16} />} />
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Ville" placeholder="Dakar" icon={<MapPin size={16} />} />
-                      <Input label="Pays" placeholder="Sénégal" icon={<MapPin size={16} />} />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {/* ===== STEP 6: Code sponsor ===== */}
-            {step === 6 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-gold/10 rounded-2xl flex items-center justify-center">
-                    <Gift size={28} className="text-gold-dark" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Code sponsor</h2>
-                  <p className="text-sm text-gray-500">Avez-vous un code de parrainage ? (optionnel)</p>
-                </div>
-
-                <Card className="text-center">
-                  <div className="max-w-sm mx-auto space-y-6">
-                    <div className="w-20 h-20 mx-auto bg-gold/10 rounded-2xl flex items-center justify-center">
-                      <Gift size={36} className="text-gold-dark" />
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Si un proche vous a recommandé Aldiana Care, entrez son code pour bénéficier d'avantages exclusifs.
-                    </p>
-                    <div>
-                      <input
-                        type="text"
-                        value={sponsorCode}
-                        onChange={(e) => setSponsorCode(e.target.value.toUpperCase())}
-                        placeholder="Ex: ALDC-2024-XXXX"
-                        className="w-full text-center text-lg font-mono tracking-widest rounded-xl border border-gray-200 px-4 py-4 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold"
-                      />
-                    </div>
-                    {sponsorCode && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 rounded-xl bg-primary/5 border border-primary/20"
-                      >
-                        <p className="text-sm text-primary font-medium flex items-center justify-center gap-1">
-                          <CheckCircle size={14} /> Code sponsor enregistré
-                        </p>
-                      </motion.div>
-                    )}
-                    <p className="text-[11px] text-gray-400">
-                      Vous pouvez passer cette étape si vous n'avez pas de code
-                    </p>
-                  </div>
-                </Card>
-              </div>
-            )}
-
-            {/* ===== STEP 7: Paiement ===== */}
-            {step === 7 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <CreditCard size={28} className="text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Moyen de paiement</h2>
-                  <p className="text-sm text-gray-500">Choisissez comment vous souhaitez régler votre cotisation</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Personne(s) de confiance</h2>
+                  <p className="text-sm text-gray-500">Désignez au moins une personne à contacter en cas de besoin</p>
                 </div>
 
                 <div className="space-y-4">
-                  {/* Plan summary */}
-                  <Card className="bg-primary/5 border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          Formule {selectedPlan === 'family' ? 'Aldiana Family' : selectedPlan === 'pathologie' ? 'Pathologie' : selectedPlan === 'option-risque' ? 'Option Indemnité de Risque' : 'Individuelle'}
-                        </p>
-                        <p className="text-xs text-gray-500">Cotisation mensuelle</p>
+                  {trustedPersons.map((tp, idx) => (
+                    <Card key={idx}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-semibold text-gray-900">Personne {idx + 1}</h4>
+                        {trustedPersons.length > 1 && (
+                          <button onClick={() => removeTrusted(idx)} className="text-xs text-red-500 hover:text-red-600 font-medium">Supprimer</button>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">
-                          {selectedPlan === 'family' ? '50' : selectedPlan === 'pathologie' ? '30' : selectedPlan === 'option-risque' ? '+25' : '15'}€
-                        </p>
-                        <p className="text-xs text-gray-500">/mois</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  {/* Payment methods */}
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {[
-                      { id: 'card', label: 'Carte bancaire', desc: 'Visa, Mastercard', icon: CreditCard },
-                      { id: 'mobile_money', label: 'Mobile Money', desc: 'Orange Money, Wave, MTN', icon: Phone },
-                      { id: 'virement', label: 'Virement bancaire', desc: 'Transfert SEPA', icon: ArrowRight },
-                      { id: 'western_union', label: 'Western Union', desc: 'Transfert d\'argent', icon: Globe },
-                    ].map((method) => (
-                      <Card
-                        key={method.id}
-                        hover
-                        className={`cursor-pointer transition-all ${
-                          paymentMethod === method.id
-                            ? 'ring-2 ring-primary border-primary'
-                            : ''
-                        }`}
-                        onClick={() => setPaymentMethod(method.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            paymentMethod === method.id ? 'bg-primary/10' : 'bg-gray-100'
-                          }`}>
-                            <method.icon size={20} className={paymentMethod === method.id ? 'text-primary' : 'text-gray-400'} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-900">{method.label}</p>
-                            <p className="text-[11px] text-gray-400">{method.desc}</p>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            paymentMethod === method.id
-                              ? 'border-primary bg-primary'
-                              : 'border-gray-300'
-                          }`}>
-                            {paymentMethod === method.id && <Check size={12} className="text-white" />}
-                          </div>
+                      <div className="space-y-3">
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Input label="Prénom" placeholder="Prénom" icon={<User size={14} />} value={tp.firstName} onChange={(e) => updateTrusted(idx, 'firstName', e.target.value)} />
+                          <Input label="Nom" placeholder="Nom" icon={<User size={14} />} value={tp.lastName} onChange={(e) => updateTrusted(idx, 'lastName', e.target.value)} />
                         </div>
-                      </Card>
-                    ))}
-                  </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Input label="Téléphone" type="tel" placeholder="+221 77..." icon={<Phone size={14} />} value={tp.phone} onChange={(e) => updateTrusted(idx, 'phone', e.target.value)} />
+                          <Input label="Email (optionnel)" type="email" placeholder="email@exemple.com" icon={<Mail size={14} />} value={tp.email} onChange={(e) => updateTrusted(idx, 'email', e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Relation</label>
+                          <select value={tp.relation} onChange={(e) => updateTrusted(idx, 'relation', e.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white">
+                            <option value="">Sélectionnez</option>
+                            <option value="pere">Père</option>
+                            <option value="mere">Mère</option>
+                            <option value="frere">Frère</option>
+                            <option value="soeur">Sœur</option>
+                            <option value="ami">Ami(e)</option>
+                            <option value="cousin">Cousin(e)</option>
+                            <option value="autre">Autre</option>
+                          </select>
+                        </div>
+                        {tp.relation === 'autre' && (
+                          <Input label="Précisez la relation" placeholder="Ex: Oncle maternel" value={tp.relationDetails} onChange={(e) => updateTrusted(idx, 'relationDetails', e.target.value)} />
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                  {trustedPersons.length < 3 && (
+                    <button onClick={addTrusted} className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                      + Ajouter une personne de confiance
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* ===== STEP 8: Signature digitale ===== */}
-            {step === 8 && (
+            {/* ===== STEP 6 (family only): Membres de la famille ===== */}
+            {isFamily && step === 6 && (
               <div>
                 <div className="text-center mb-8">
                   <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <PenTool size={28} className="text-primary" />
+                    <Users size={28} className="text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Signature digitale</h2>
-                  <p className="text-sm text-gray-500">Signez votre contrat en dessinant ou en important votre signature</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Membres de la famille</h2>
+                  <p className="text-sm text-gray-500">Ajoutez les membres à couvrir (max 4, hors souscripteur)</p>
                 </div>
 
-                <Card>
-                  <div className="space-y-6">
-                    {/* Mode toggle */}
-                    <div className="flex bg-gray-100 rounded-xl p-1 max-w-xs mx-auto">
-                      <button
-                        onClick={() => { setSignatureMode('draw'); setSignaturePreview(null); }}
-                        className={`flex-1 py-2 px-4 rounded-lg text-xs font-medium transition-all ${
-                          signatureMode === 'draw' ? 'bg-white shadow text-primary' : 'text-gray-500'
-                        }`}
-                      >
-                        <PenTool size={12} className="inline mr-1" /> Dessiner
-                      </button>
-                      <button
-                        onClick={() => { setSignatureMode('upload'); setSignaturePreview(null); clearCanvas(); }}
-                        className={`flex-1 py-2 px-4 rounded-lg text-xs font-medium transition-all ${
-                          signatureMode === 'upload' ? 'bg-white shadow text-primary' : 'text-gray-500'
-                        }`}
-                      >
-                        <Upload size={12} className="inline mr-1" /> Importer
-                      </button>
-                    </div>
-
-                    {signatureMode === 'draw' ? (
-                      <div>
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-white">
-                          <canvas
-                            ref={canvasRef}
-                            width={600}
-                            height={200}
-                            className="w-full cursor-crosshair"
-                            onMouseDown={startDrawing}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between mt-3">
-                          <p className="text-[11px] text-gray-400">Dessinez votre signature ci-dessus avec la souris</p>
-                          <button
-                            onClick={clearCanvas}
-                            className="text-xs text-red-500 hover:text-red-600 font-medium"
-                          >
-                            Effacer
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        {signaturePreview ? (
-                          <div className="relative">
-                            <img src={signaturePreview} alt="Signature" className="w-full max-h-48 object-contain rounded-xl border border-gray-200 bg-white p-4" />
-                            <button
-                              onClick={() => setSignaturePreview(null)}
-                              className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            onClick={() => signInputRef.current?.click()}
-                            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
-                          >
-                            <Upload size={32} className="mx-auto mb-3 text-gray-300" />
-                            <p className="text-sm font-medium text-gray-600">Importez une image de votre signature</p>
-                            <p className="text-[11px] text-gray-400 mt-1">PNG ou JPG avec fond transparent recommandé</p>
-                          </div>
+                <div className="space-y-4">
+                  {familyMembers.map((m, idx) => (
+                    <Card key={idx}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-semibold text-gray-900">Membre {idx + 1}</h4>
+                        {familyMembers.length > 1 && (
+                          <button onClick={() => removeMember(idx)} className="text-xs text-red-500 hover:text-red-600 font-medium">Supprimer</button>
                         )}
-                        <input
-                          ref={signInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleSignUpload}
-                        />
                       </div>
-                    )}
-
-                    {/* Terms */}
-                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={acceptTerms}
-                          onChange={(e) => setAcceptTerms(e.target.checked)}
-                          className="mt-1 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-xs text-gray-600 leading-relaxed">
-                          En signant ce contrat, je déclare avoir lu et accepté les{' '}
-                          <a href="#" className="text-primary font-medium underline">conditions générales</a>,
-                          la{' '}
-                          <a href="#" className="text-primary font-medium underline">politique de confidentialité</a>{' '}
-                          et les{' '}
-                          <a href="#" className="text-primary font-medium underline">conditions particulières</a>{' '}
-                          d'Aldiana Care. Je certifie que les informations fournies sont exactes.
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                </Card>
+                      <div className="space-y-3">
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Input label="Prénom" placeholder="Prénom" value={m.firstName} onChange={(e) => updateMember(idx, 'firstName', e.target.value)} />
+                          <Input label="Nom" placeholder="Nom" value={m.lastName} onChange={(e) => updateMember(idx, 'lastName', e.target.value)} />
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Input label="Date de naissance" type="date" value={m.dateOfBirth} onChange={(e) => updateMember(idx, 'dateOfBirth', e.target.value)} />
+                          <Input label="Téléphone" type="tel" placeholder="+33..." value={m.phone} onChange={(e) => updateMember(idx, 'phone', e.target.value)} />
+                        </div>
+                        <Input label="Email (optionnel)" type="email" placeholder="email@exemple.com" value={m.email} onChange={(e) => updateMember(idx, 'email', e.target.value)} />
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Input label="Mot de passe" type="password" placeholder="Min 8 car." value={m.password} onChange={(e) => updateMember(idx, 'password', e.target.value)} />
+                          <Input label="Confirmer" type="password" placeholder="Confirmer" value={m.confirmPassword} onChange={(e) => updateMember(idx, 'confirmPassword', e.target.value)} />
+                        </div>
+                        {/* Show residence fields for adults */}
+                        {m.dateOfBirth && new Date().getFullYear() - new Date(m.dateOfBirth).getFullYear() >= 18 && (
+                          <>
+                            <Input label="Pays de résidence" placeholder="France" value={m.residenceCountry} onChange={(e) => updateMember(idx, 'residenceCountry', e.target.value)} />
+                            <Input label="Adresse de résidence" placeholder="Adresse complète" value={m.residenceAddress} onChange={(e) => updateMember(idx, 'residenceAddress', e.target.value)} />
+                            <Input label="Pays de rapatriement" placeholder="Sénégal" value={m.repatriationCountry} onChange={(e) => updateMember(idx, 'repatriationCountry', e.target.value)} />
+                            <div className="grid sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">CNI Recto (obligatoire)</label>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" className="w-full text-sm" onChange={(e) => { const f = e.target.files?.[0]; if (f) setMemberCniFiles(prev => ({ ...prev, [`member_${idx}_cniRecto`]: f })); }} />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">CNI Verso (obligatoire)</label>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" className="w-full text-sm" onChange={(e) => { const f = e.target.files?.[0]; if (f) setMemberCniFiles(prev => ({ ...prev, [`member_${idx}_cniVerso`]: f })); }} />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                  {familyMembers.length < 4 && (
+                    <button onClick={addMember} className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                      + Ajouter un membre
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* ===== STEP 9: Confirmation ===== */}
-            {step === 9 && (
+            {/* ===== REVIEW STEP: Récapitulatif & Soumission ===== */}
+            {step === reviewStep && (
+              <div>
+                <div className="text-center mb-8">
+                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
+                    <Eye size={28} className="text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Récapitulatif</h2>
+                  <p className="text-sm text-gray-500">Vérifiez vos informations avant de soumettre</p>
+                </div>
+
+                {error && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2 mb-4">
+                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <Card>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Formule</h4>
+                    <p className="text-sm text-gray-600">{plans.find(p => p.id === selectedPlan)?.name} — {plans.find(p => p.id === selectedPlan)?.price}€{plans.find(p => p.id === selectedPlan)?.period}</p>
+                  </Card>
+                  <Card>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Informations personnelles</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <p className="text-gray-400">Nom complet</p><p className="text-gray-900 font-medium">{firstName} {lastName}</p>
+                      <p className="text-gray-400">Email</p><p className="text-gray-900">{email}</p>
+                      <p className="text-gray-400">Téléphone</p><p className="text-gray-900">{otpPhone}</p>
+                      <p className="text-gray-400">Résidence</p><p className="text-gray-900">{residenceCountry}</p>
+                      <p className="text-gray-400">Rapatriement</p><p className="text-gray-900">{repatriationCountry}</p>
+                    </div>
+                  </Card>
+                  <Card>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Documents</h4>
+                    <div className="flex gap-4 text-sm">
+                      <span className={`flex items-center gap-1 ${photoFile ? 'text-primary' : 'text-gray-400'}`}>{photoFile ? <CheckCircle size={14} /> : <X size={14} />} Photo</span>
+                      <span className={`flex items-center gap-1 ${cniRectoFile ? 'text-primary' : 'text-gray-400'}`}>{cniRectoFile ? <CheckCircle size={14} /> : <X size={14} />} CNI Recto</span>
+                      <span className={`flex items-center gap-1 ${cniVersoFile ? 'text-primary' : 'text-gray-400'}`}>{cniVersoFile ? <CheckCircle size={14} /> : <X size={14} />} CNI Verso</span>
+                    </div>
+                  </Card>
+                  <Card>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Personne(s) de confiance ({trustedPersons.length})</h4>
+                    {trustedPersons.map((tp, i) => (
+                      <p key={i} className="text-sm text-gray-600">{tp.firstName} {tp.lastName} — {tp.relation} — {tp.phone}</p>
+                    ))}
+                  </Card>
+                  {isFamily && (
+                    <Card>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Membres de la famille ({familyMembers.length})</h4>
+                      {familyMembers.map((m, i) => (
+                        <p key={i} className="text-sm text-gray-600">{m.firstName} {m.lastName} — {m.dateOfBirth}</p>
+                      ))}
+                    </Card>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <Button variant="gold" fullWidth size="lg" onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? <><Loader2 size={16} className="animate-spin mr-2" /> Envoi en cours...</> : 'Soumettre mon inscription'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== CONFIRMATION STEP ===== */}
+            {step === confirmStep && (
               <div className="text-center">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -743,46 +790,36 @@ export function OnboardingPage() {
                 >
                   <Sparkles size={36} className="text-primary" />
                 </motion.div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Félicitations !</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Inscription soumise !</h2>
                 <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto">
-                  Votre contrat Aldiana Care a été généré avec succès. Vous êtes maintenant protégé(e).
+                  Votre demande est en cours de vérification par notre équipe. Vous recevrez un email de confirmation une fois votre inscription approuvée.
                 </p>
 
                 <Card className="max-w-md mx-auto mb-8">
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-primary/5 text-center">
-                      <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Numéro de contrat</p>
-                      <p className="text-xl font-bold font-mono text-primary">ALC-2026-{Math.random().toString(36).substring(2, 8).toUpperCase()}</p>
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                      <p className="text-[10px] text-amber-600 uppercase font-bold mb-1">Statut</p>
+                      <p className="text-lg font-bold text-amber-700">En attente de validation</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Formule</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedPlan === 'family' ? 'Aldiana Family' : selectedPlan === 'pathologie' ? 'Pathologie' : selectedPlan === 'option-risque' ? 'Option Indemnité de Risque' : 'Individuelle'}
-                        </p>
+                        <p className="text-sm font-semibold text-gray-900">{plans.find(p => p.id === selectedPlan)?.name}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Cotisation</p>
-                        <p className="text-sm font-semibold text-primary">
-                          {selectedPlan === 'family' ? '50' : selectedPlan === 'pathologie' ? '30' : selectedPlan === 'option-risque' ? '+25' : '15'}€ /mois
-                        </p>
+                        <p className="text-sm font-semibold text-primary">{plans.find(p => p.id === selectedPlan)?.price}€ /mois</p>
                       </div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gray-50">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Statut</p>
-                      <p className="text-sm font-semibold text-primary flex items-center justify-center gap-1">
-                        <CheckCircle size={14} /> Contrat actif
-                      </p>
                     </div>
                   </div>
                 </Card>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button variant="primary" icon={<Eye size={16} />} onClick={() => navigate('/app')}>
-                    Accéder à mon espace
+                  <Button variant="primary" onClick={() => navigate('/connexion')}>
+                    Aller à la page de connexion
                   </Button>
-                  <Button variant="outline" icon={<FileText size={16} />}>
-                    Télécharger le contrat PDF
+                  <Button variant="outline" onClick={() => navigate('/')}>
+                    Retour à l'accueil
                   </Button>
                 </div>
               </div>
@@ -791,7 +828,7 @@ export function OnboardingPage() {
         </AnimatePresence>
 
         {/* Navigation buttons */}
-        {step < 9 && (
+        {step < reviewStep && (
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
             <Button
               variant="outline"
@@ -804,10 +841,20 @@ export function OnboardingPage() {
             <Button
               variant="primary"
               onClick={nextStep}
-              disabled={step === 1 && !selectedPlan}
+              disabled={
+                (step === 1 && !selectedPlan) ||
+                (step === 2 && !otpVerified)
+              }
               icon={<ArrowRight size={16} />}
             >
-              {step === 8 ? 'Signer et confirmer' : 'Continuer'}
+              Continuer
+            </Button>
+          </div>
+        )}
+        {step === reviewStep && (
+          <div className="flex items-center justify-start mt-8 pt-6 border-t border-gray-200">
+            <Button variant="outline" onClick={prevStep} icon={<ArrowLeft size={16} />}>
+              Retour
             </Button>
           </div>
         )}

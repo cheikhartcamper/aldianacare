@@ -1,15 +1,34 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, User, LifeBuoy } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, User, LifeBuoy, AlertTriangle, Clock, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Input, Logo } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 type LoginRole = 'personnel' | 'assistance';
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<LoginRole>('personnel');
+  const [error, setError] = useState('');
+  const [pendingMsg, setPendingMsg] = useState('');
+  const [rejectedMsg, setRejectedMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated, user } = useAuth();
+
+  // If already authenticated, redirect
+  if (isAuthenticated && user) {
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    if (user.role === 'admin') {
+      navigate(from || '/admin', { replace: true });
+    } else {
+      navigate(from || '/app', { replace: true });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface-secondary flex">
@@ -95,16 +114,56 @@ export function LoginPage() {
 
           <form
             className="space-y-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              navigate(role === 'assistance' ? '/assistance' : '/app');
+              setError('');
+              setPendingMsg('');
+              setRejectedMsg('');
+              setIsSubmitting(true);
+              const result = await login(email, password);
+              setIsSubmitting(false);
+              if (result.success) {
+                navigate(role === 'assistance' ? '/assistance' : '/app');
+              } else if (result.registrationStatus === 'pending') {
+                setPendingMsg(result.message);
+              } else if (result.registrationStatus === 'rejected') {
+                setRejectedMsg(result.rejectionReason || result.message);
+              } else {
+                setError(result.message);
+              }
             }}
           >
+            {/* Error messages */}
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2">
+                <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            {pendingMsg && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2">
+                <Clock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700">{pendingMsg}</p>
+              </div>
+            )}
+            {rejectedMsg && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2">
+                <XCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-600">Inscription rejetée</p>
+                  <p className="text-xs text-red-500 mt-1">{rejectedMsg}</p>
+                </div>
+              </div>
+            )}
+
             <Input
               label="Email"
               type="email"
               placeholder="votre@email.com"
               icon={<Mail size={16} />}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
             <div className="relative">
               <Input
@@ -112,6 +171,9 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Votre mot de passe"
                 icon={<Lock size={16} />}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <button
                 type="button"
@@ -132,8 +194,8 @@ export function LoginPage() {
               </a>
             </div>
 
-            <Button type="submit" fullWidth size="lg" variant="gold">
-              {role === 'assistance' ? 'Accéder au centre d\'assistance' : 'Se connecter'}
+            <Button type="submit" fullWidth size="lg" variant="gold" disabled={isSubmitting}>
+              {isSubmitting ? 'Connexion en cours...' : role === 'assistance' ? 'Accéder au centre d\'assistance' : 'Se connecter'}
             </Button>
           </form>
 

@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
@@ -45,57 +47,59 @@ import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public marketing site */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/comment-ca-marche" element={<HowItWorksPage />} />
-          <Route path="/offres" element={<OffersPage />} />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/parrainage" element={<SponsorshipPage />} />
-        </Route>
+      <AuthProvider>
+        <Routes>
+          {/* Public marketing site */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/comment-ca-marche" element={<HowItWorksPage />} />
+            <Route path="/offres" element={<OffersPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/parrainage" element={<SponsorshipPage />} />
+          </Route>
 
-        {/* Auth pages (standalone layouts) */}
-        <Route path="/connexion" element={<LoginPage />} />
-        <Route path="/inscription" element={<OnboardingPage />} />
+          {/* Auth pages (standalone layouts) */}
+          <Route path="/connexion" element={<LoginPage />} />
+          <Route path="/inscription" element={<OnboardingPage />} />
 
-        {/* User dashboard */}
-        <Route path="/app" element={<DashboardLayout />}>
-          <Route index element={<DashboardHome />} />
-          <Route path="contrat" element={<ContractPage />} />
-          <Route path="offres" element={<DashboardOffersPage />} />
-          <Route path="paiements" element={<PaymentsPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="personne-confiance" element={<TrustedPersonPage />} />
-          <Route path="parrainage" element={<SponsorshipDashboard />} />
-          <Route path="declaration-deces" element={<DeathDeclarationPage />} />
-          <Route path="support" element={<SupportPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="parametres" element={<SettingsPage />} />
-        </Route>
+          {/* User dashboard — protected */}
+          <Route path="/app" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route index element={<DashboardHome />} />
+            <Route path="contrat" element={<ContractPage />} />
+            <Route path="offres" element={<DashboardOffersPage />} />
+            <Route path="paiements" element={<PaymentsPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="personne-confiance" element={<TrustedPersonPage />} />
+            <Route path="parrainage" element={<SponsorshipDashboard />} />
+            <Route path="declaration-deces" element={<DeathDeclarationPage />} />
+            <Route path="support" element={<SupportPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="parametres" element={<SettingsPage />} />
+          </Route>
 
-        {/* Assistance center */}
-        <Route path="/assistance" element={<AssistanceLayout />}>
-          <Route index element={<AssistanceDashboard />} />
-          <Route path="dossiers" element={<AssistanceCasesPage />} />
-          <Route path="rapatriements" element={<AssistanceRapatriementsPage />} />
-          <Route path="managers" element={<AssistanceManagersPage />} />
-          <Route path="messages" element={<AssistanceMessagesPage />} />
-        </Route>
+          {/* Assistance center — protected */}
+          <Route path="/assistance" element={<ProtectedRoute><AssistanceLayout /></ProtectedRoute>}>
+            <Route index element={<AssistanceDashboard />} />
+            <Route path="dossiers" element={<AssistanceCasesPage />} />
+            <Route path="rapatriements" element={<AssistanceRapatriementsPage />} />
+            <Route path="managers" element={<AssistanceManagersPage />} />
+            <Route path="messages" element={<AssistanceMessagesPage />} />
+          </Route>
 
-        {/* Admin dashboard */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="utilisateurs" element={<AdminUsersPage />} />
-          <Route path="contrats" element={<AdminContractsPage />} />
-          <Route path="paiements" element={<AdminPaymentsPage />} />
-          <Route path="dossiers-deces" element={<AdminDeathCasesPage />} />
-          <Route path="commissions" element={<AdminCommissionsPage />} />
-          <Route path="analytics" element={<AdminAnalyticsPage />} />
-          <Route path="parametres" element={<AdminSettingsPage />} />
-        </Route>
-      </Routes>
+          {/* Admin dashboard — protected (admin only) */}
+          <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="utilisateurs" element={<AdminUsersPage />} />
+            <Route path="contrats" element={<AdminContractsPage />} />
+            <Route path="paiements" element={<AdminPaymentsPage />} />
+            <Route path="dossiers-deces" element={<AdminDeathCasesPage />} />
+            <Route path="commissions" element={<AdminCommissionsPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
+            <Route path="parametres" element={<AdminSettingsPage />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
