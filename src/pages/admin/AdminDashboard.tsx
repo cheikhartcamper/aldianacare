@@ -4,7 +4,7 @@ import {
   Users, CreditCard, AlertCircle, ArrowUpRight,
   Loader2, CheckCircle, ArrowRight, AlertTriangle
 } from 'lucide-react';
-import { Card, Badge } from '@/components/ui';
+import { Card, Badge, PageLoader } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
 import { Link } from 'react-router-dom';
 import {
@@ -260,9 +260,7 @@ export function AdminDashboard() {
           </Link>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 size={20} className="animate-spin text-primary" />
-          </div>
+          <PageLoader variant="inline" size="sm" label="Chargement..." />
         ) : recentUsers.length === 0 ? (
           <div className="flex items-center justify-center p-8">
             <p className="text-sm text-gray-400">Aucune inscription</p>

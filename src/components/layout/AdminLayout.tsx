@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const adminLinks = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, available: true },
   { label: 'Inscriptions', path: '/admin/inscriptions', icon: FileText, available: true },
+  { label: 'Déclarations', path: '/admin/declarations', icon: AlertTriangle, available: true },
   { label: 'Utilisateurs', path: '/admin/utilisateurs', icon: Users, available: true },
   { label: 'Paramètres', path: '/admin/parametres', icon: Settings, available: true },
   { label: 'Contrats', path: '/admin/contrats', icon: FileText, available: false },

@@ -91,6 +91,13 @@ export interface RegisterResponse {
   registrationStatus: string;
 }
 
+export interface UpdateProfileResponse {
+  user: User;
+  trustedPersons: TrustedPerson[];
+  familyMembers: FamilyMember[];
+  updatedFields: string[];
+}
+
 export interface ScanCniResponse {
   extracted: {
     lastName: string;
@@ -163,6 +170,14 @@ export const authService = {
   /** GET /api/auth/me */
   async getMe(): Promise<ApiResponse<MeResponse>> {
     const { data } = await api.get<ApiResponse<MeResponse>>('/auth/me');
+    return data;
+  },
+
+  /** PUT /api/auth/profile — multipart/form-data */
+  async updateProfile(formData: FormData): Promise<ApiResponse<UpdateProfileResponse>> {
+    const { data } = await api.put<ApiResponse<UpdateProfileResponse>>('/auth/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 };

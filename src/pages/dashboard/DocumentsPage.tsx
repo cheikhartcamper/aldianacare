@@ -1,90 +1,244 @@
 import { motion } from 'framer-motion';
-import { FileText, Download, Eye, Share2, Upload, CheckCircle, Clock } from 'lucide-react';
-import { Card, Badge, Button } from '@/components/ui';
-
-const documents = [
-  { name: 'Contrat d\'assurance Premium', type: 'Contrat', date: '01 Jan 2026', size: '2.4 MB', status: 'validated' },
-  { name: 'Reçu paiement Mars 2026', type: 'Reçu', date: '01 Mar 2026', size: '156 KB', status: 'validated' },
-  { name: 'Reçu paiement Février 2026', type: 'Reçu', date: '01 Fev 2026', size: '148 KB', status: 'validated' },
-  { name: 'Passeport - Amadou Diallo', type: 'Identité', date: '15 Dec 2025', size: '1.2 MB', status: 'validated' },
-  { name: 'Certificat de résidence', type: 'Certificat', date: '10 Dec 2025', size: '890 KB', status: 'pending' },
-  { name: 'Photo selfie vérification', type: 'Identité', date: '15 Dec 2025', size: '3.1 MB', status: 'validated' },
-];
-
-const statusConfig = {
-  validated: { label: 'Validé', variant: 'success' as const, icon: CheckCircle },
-  pending: { label: 'En attente', variant: 'warning' as const, icon: Clock },
-};
+import { FileText, Download, Eye, Camera, CheckCircle, Clock, ImageIcon, AlertTriangle } from 'lucide-react';
+import { Card, Badge } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function DocumentsPage() {
+  const { user } = useAuth();
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://aldiianacare.online/api';
+  const baseUrl = apiUrl.replace('/api', '');
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const docs: Array<{
+    key: string;
+    name: string;
+    type: string;
+    path: string | null;
+    isImage: boolean;
+    date: string;
+  }> = [
+    {
+      key: 'cniRecto',
+      name: 'CNI — Recto',
+      type: 'Pièce d\'identité',
+      path: user?.cniRectoPath || null,
+      isImage: true,
+      date: user?.createdAt || '',
+    },
+    {
+      key: 'cniVerso',
+      name: 'CNI — Verso',
+      type: 'Pièce d\'identité',
+      path: user?.cniVersoPath || null,
+      isImage: true,
+      date: user?.createdAt || '',
+    },
+    {
+      key: 'identityPhoto',
+      name: 'Photo d\'identité',
+      type: 'Identité',
+      path: user?.identityPhotoPath || null,
+      isImage: true,
+      date: user?.createdAt || '',
+    },
+  ];
+
+  const availableDocs = docs.filter((d) => d.path);
+  const missingDocs = docs.filter((d) => !d.path);
+
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-            <p className="text-sm text-gray-500 mt-1">Tous vos documents en un seul endroit.</p>
-          </div>
-          <Button size="sm" icon={<Upload size={14} />}>Ajouter un document</Button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Vos pièces d'identité transmises lors de l'inscription.
+          </p>
         </div>
       </motion.div>
 
-      {/* Document categories */}
-      <div className="grid sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Contrats', count: 1, color: 'bg-primary/10 text-primary' },
-          { label: 'Reçus', count: 2, color: 'bg-info/10 text-info' },
-          { label: 'Identité', count: 2, color: 'bg-gold/10 text-gold-dark' },
-          { label: 'Certificats', count: 1, color: 'bg-success/10 text-success' },
-        ].map((cat) => (
-          <Card key={cat.label} hover className="text-center cursor-pointer">
-            <div className={`w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center ${cat.color}`}>
-              <FileText size={18} />
+      {/* Stats */}
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center">
+              <CheckCircle size={20} className="text-success" />
             </div>
-            <p className="text-sm font-semibold text-gray-900">{cat.label}</p>
-            <p className="text-xs text-gray-400">{cat.count} document(s)</p>
-          </Card>
-        ))}
+            <div>
+              <p className="text-xs text-gray-400">Documents fournis</p>
+              <p className="text-lg font-bold text-gray-900">{availableDocs.length}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center">
+              <Clock size={20} className="text-warning" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Documents manquants</p>
+              <p className="text-lg font-bold text-gray-900">{missingDocs.length}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              user?.registrationStatus === 'approved' ? 'bg-success/10' :
+              user?.registrationStatus === 'rejected' ? 'bg-danger/10' : 'bg-amber-50'
+            }`}>
+              <FileText size={20} className={
+                user?.registrationStatus === 'approved' ? 'text-success' :
+                user?.registrationStatus === 'rejected' ? 'text-danger' : 'text-amber-500'
+              } />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Statut du dossier</p>
+              <p className="text-sm font-bold text-gray-900">
+                {user?.registrationStatus === 'approved' ? 'Approuvé' :
+                 user?.registrationStatus === 'rejected' ? 'Rejeté' : 'En vérification'}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Documents list */}
-      <Card padding="none">
-        <div className="p-6 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">Tous les documents</h3>
-        </div>
-        <div className="divide-y divide-gray-50">
-          {documents.map((doc) => {
-            const config = statusConfig[doc.status as keyof typeof statusConfig];
-            return (
-              <div key={doc.name} className="flex items-center gap-4 p-4 hover:bg-gray-50/50 transition-colors">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <FileText size={18} className="text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
-                    <span>{doc.type}</span>
-                    <span>{doc.date}</span>
-                    <span>{doc.size}</span>
+      {/* Documents disponibles */}
+      {availableDocs.length > 0 && (
+        <Card padding="none">
+          <div className="p-5 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Documents transmis</h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {availableDocs.map((doc) => {
+              const fileUrl = `${baseUrl}/${doc.path}`;
+              return (
+                <div key={doc.key} className="flex items-center gap-4 p-4 hover:bg-gray-50/50 transition-colors">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {doc.isImage ? (
+                      <img
+                        src={fileUrl}
+                        alt={doc.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).parentElement!.querySelector('.fallback-icon')?.setAttribute('style', 'display:flex');
+                        }}
+                      />
+                    ) : (
+                      <FileText size={20} className="text-primary" />
+                    )}
+                    <span className="fallback-icon hidden items-center justify-center">
+                      <ImageIcon size={20} className="text-primary" />
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
+                      <span>{doc.type}</span>
+                      {doc.date && <span>{formatDate(doc.date)}</span>}
+                    </div>
+                  </div>
+                  <Badge variant="success" dot size="sm">Fourni</Badge>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary transition-colors"
+                      title="Voir"
+                    >
+                      <Eye size={16} />
+                    </a>
+                    <a
+                      href={fileUrl}
+                      download
+                      className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary transition-colors"
+                      title="Télécharger"
+                    >
+                      <Download size={16} />
+                    </a>
                   </div>
                 </div>
-                <Badge variant={config.variant} dot size="sm">{config.label}</Badge>
-                <div className="flex items-center gap-1">
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600" title="Voir">
-                    <Eye size={16} />
-                  </button>
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600" title="Télécharger">
-                    <Download size={16} />
-                  </button>
-                  <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600" title="Partager">
-                    <Share2 size={16} />
-                  </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Données OCR extraites */}
+      {user?.cniExtractedData && Object.keys(user.cniExtractedData).length > 0 && (
+        <Card>
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Camera size={16} className="text-primary" />
+            Données extraites (OCR)
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {[
+              { key: 'lastName', label: 'Nom' },
+              { key: 'firstName', label: 'Prénom' },
+              { key: 'dateOfBirth', label: 'Date de naissance' },
+              { key: 'placeOfBirth', label: 'Lieu de naissance' },
+              { key: 'cniNumber', label: 'Numéro CNI' },
+              { key: 'expirationDate', label: 'Date d\'expiration' },
+              { key: 'nationality', label: 'Nationalité' },
+              { key: 'address', label: 'Adresse' },
+            ].map(({ key, label }) => {
+              const value = user.cniExtractedData?.[key];
+              if (!value) return null;
+              return (
+                <div key={key} className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-400">{label}</p>
+                  <p className="text-sm font-medium text-gray-900 mt-0.5">{String(value)}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+            <CheckCircle size={11} className="text-success" />
+            Données extraites automatiquement par scan OCR lors de l'inscription
+          </p>
+        </Card>
+      )}
+
+      {/* Documents manquants */}
+      {missingDocs.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <div className="flex gap-3">
+            <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Documents non fournis</p>
+              <ul className="mt-2 space-y-1">
+                {missingDocs.map((doc) => (
+                  <li key={doc.key} className="text-xs text-amber-700 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    {doc.name}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-amber-600 mt-2">
+                Contactez le support pour soumettre les documents manquants.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Aucun document */}
+      {availableDocs.length === 0 && (
+        <Card>
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <FileText size={36} className="text-gray-200 mb-3" />
+            <p className="text-sm font-medium text-gray-500">Aucun document disponible</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Vos documents apparaîtront ici une fois votre inscription complétée.
+            </p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

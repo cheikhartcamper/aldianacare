@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, CreditCard, Gift, HeadphonesIcon,
   Bell, Settings, LogOut, Menu, X, ChevronDown, Shield, Heart,
-  Moon, Sun, AlertTriangle, FolderOpen, User
+  Moon, Sun, FolderOpen, User, Users
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge, Logo } from '@/components/ui';
+import { getImageUrl } from '@/lib/imageUrl';
 
 const mainLinks = [
   { label: 'Tableau de bord', path: '/app', icon: LayoutDashboard },
@@ -20,12 +21,12 @@ const mainLinks = [
 
 const secondaryLinks = [
   { label: 'Personne de confiance', path: '/app/personne-confiance', icon: Heart },
+  { label: 'Famille', path: '/app/famille', icon: Users, familyOnly: true },
   { label: 'Parrainage', path: '/app/parrainage', icon: Gift },
-  { label: 'Déclaration décès', path: '/app/declaration-deces', icon: AlertTriangle },
   { label: 'Support', path: '/app/support', icon: HeadphonesIcon },
 ];
 
-function NavLink({ link, isActive, onClick }: { link: { label: string; path: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }; isActive: boolean; onClick?: () => void }) {
+function NavLink({ link, isActive, onClick }: { link: { label: string; path: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>; familyOnly?: boolean }; isActive: boolean; onClick?: () => void }) {
   return (
     <Link
       to={link.path}
@@ -49,7 +50,9 @@ function NavLink({ link, isActive, onClick }: { link: { label: string; path: str
   );
 }
 
-function SidebarContent({ location, onLinkClick }: { location: { pathname: string }; onLinkClick?: () => void }) {
+function SidebarContent({ location, onLinkClick, userPlanType }: { location: { pathname: string }; onLinkClick?: () => void; userPlanType?: 'individual' | 'family' }) {
+  const visibleSecondaryLinks = secondaryLinks.filter(link => !link.familyOnly || userPlanType === 'family');
+  
   return (
     <>
       <div className="px-5 pt-3 pb-2">
@@ -72,7 +75,7 @@ function SidebarContent({ location, onLinkClick }: { location: { pathname: strin
         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/30">Services</p>
       </div>
       <nav className="px-2 space-y-0.5">
-        {secondaryLinks.map((link) => (
+        {visibleSecondaryLinks.map((link) => (
           <NavLink
             key={link.path}
             link={link}
@@ -89,12 +92,11 @@ export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
-  const { isDarkMode, toggleDarkMode, notifications } = useStore();
+  const { isDarkMode, toggleDarkMode } = useStore();
   const { user, logout } = useAuth();
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
   const shortName = user ? `${user.firstName} ${user.lastName.charAt(0)}.` : '';
   const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <div className="min-h-screen bg-surface-secondary flex">
@@ -110,9 +112,13 @@ export function DashboardLayout() {
         {/* User card */}
         <div className="mx-3 mt-4 mb-2 p-3 rounded-xl bg-white/8 border border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
-              <User size={16} className="text-white" />
-            </div>
+            {user?.identityPhotoPath ? (
+              <img src={getImageUrl(user.identityPhotoPath) || ''} alt="" className="w-9 h-9 rounded-full object-cover border border-white/20 flex-shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                <User size={16} className="text-white" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-white truncate">{displayName}</p>
               <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
@@ -122,7 +128,7 @@ export function DashboardLayout() {
 
         {/* Nav links */}
         <div className="flex-1 overflow-y-auto mt-2">
-          <SidebarContent location={location} />
+          <SidebarContent location={location} userPlanType={user?.planType} />
         </div>
 
         {/* Bottom section */}
@@ -178,9 +184,13 @@ export function DashboardLayout() {
               {/* Mobile user card */}
               <div className="mx-3 mt-4 mb-2 p-3 rounded-xl bg-white/8 border border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-                    <User size={16} className="text-white" />
-                  </div>
+                  {user?.identityPhotoPath ? (
+                    <img src={getImageUrl(user.identityPhotoPath) || ''} alt="" className="w-9 h-9 rounded-full object-cover border border-white/20" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                      <User size={16} className="text-white" />
+                    </div>
+                  )}
                   <div>
                     <p className="text-[13px] font-semibold text-white">{displayName}</p>
                     <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
@@ -189,7 +199,7 @@ export function DashboardLayout() {
               </div>
 
               <div className="flex-1 overflow-y-auto mt-2">
-                <SidebarContent location={location} onLinkClick={() => setMobileOpen(false)} />
+                <SidebarContent location={location} onLinkClick={() => setMobileOpen(false)} userPlanType={user?.planType} />
               </div>
 
               <div className="p-2 border-t border-white/10">
@@ -231,11 +241,6 @@ export function DashboardLayout() {
 
             <Link to="/app/notifications" className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
               <Bell size={18} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
             </Link>
 
             <div className="relative ml-2">
@@ -243,9 +248,13 @@ export function DashboardLayout() {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-50 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User size={15} className="text-primary" />
-                </div>
+                {user?.identityPhotoPath ? (
+                  <img src={getImageUrl(user.identityPhotoPath) || ''} alt="" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User size={15} className="text-primary" />
+                  </div>
+                )}
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-semibold text-gray-900">{shortName}</p>
                   <p className="text-[10px] text-gray-400">{planLabel}</p>

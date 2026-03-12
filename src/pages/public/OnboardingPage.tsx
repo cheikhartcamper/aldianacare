@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Input } from '@/components/ui';
 import { Logo } from '@/components/ui';
-import { authService } from '@/services/auth.service';
+import { authService, type ScanCniResponse } from '@/services/auth.service';
 
 const plans = [
   {
@@ -108,6 +108,11 @@ export function OnboardingPage() {
   const [cniVersoFile, setCniVersoFile] = useState<File | null>(null);
   const [cniVersoPreview, setCniVersoPreview] = useState<string | null>(null);
 
+  // OCR scan state
+  const [isScanningCni, setIsScanningCni] = useState(false);
+  const [cniExtractedData, setCniExtractedData] = useState<ScanCniResponse['extracted'] | null>(null);
+  const [scanError, setScanError] = useState('');
+
   // Trusted persons
   const [trustedPersons, setTrustedPersons] = useState<TrustedPersonForm[]>([{ ...emptyTrusted }]);
 
@@ -119,6 +124,31 @@ export function OnboardingPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cniRectoRef = useRef<HTMLInputElement>(null);
   const cniVersoRef = useRef<HTMLInputElement>(null);
+
+  // Handle OCR scan
+  const handleScanCni = async () => {
+    if (!cniRectoFile && !cniVersoFile) return;
+    setScanError('');
+    setIsScanningCni(true);
+    try {
+      const formData = new FormData();
+      if (cniRectoFile) formData.append('cniRecto', cniRectoFile);
+      if (cniVersoFile) formData.append('cniVerso', cniVersoFile);
+      const res = await authService.scanCni(formData);
+      if (res.success && res.data.extracted) {
+        const extracted = res.data.extracted;
+        setCniExtractedData(extracted);
+        // Pre-fill form fields from OCR
+        if (extracted.firstName && !firstName) setFirstName(extracted.firstName);
+        if (extracted.lastName && !lastName) setLastName(extracted.lastName);
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setScanError(e.response?.data?.message || 'Erreur lors du scan OCR.');
+    } finally {
+      setIsScanningCni(false);
+    }
+  };
 
   // Determine steps based on plan
   const isFamily = selectedPlan === 'family';
@@ -231,6 +261,7 @@ export function OnboardingPage() {
       if (photoFile) formData.append('identityPhoto', photoFile);
       if (cniRectoFile) formData.append('cniRecto', cniRectoFile);
       if (cniVersoFile) formData.append('cniVerso', cniVersoFile);
+      if (cniExtractedData) formData.append('cniExtractedData', JSON.stringify(cniExtractedData));
 
       if (isFamily) {
         formData.append('familyMemberCount', String(familyMembers.length));
@@ -578,7 +609,7 @@ export function OnboardingPage() {
                     {cniVersoPreview ? (
                       <div className="relative">
                         <img src={cniVersoPreview} alt="CNI Verso" className="w-full max-h-48 object-contain rounded-xl border border-gray-200" />
-                        <button onClick={() => { setCniVersoFile(null); setCniVersoPreview(null); }} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"><X size={14} /></button>
+                        <button onClick={() => { setCniVersoFile(null); setCniVersoPreview(null); setCniExtractedData(null); }} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"><X size={14} /></button>
                       </div>
                     ) : (
                       <div onClick={() => cniVersoRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
@@ -589,6 +620,63 @@ export function OnboardingPage() {
                     )}
                     <input ref={cniVersoRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileUpload(setCniVersoFile, setCniVersoPreview)} />
                   </Card>
+
+                  {/* Scan OCR button — visible si au moins un fichier CNI chargé */}
+                  {(cniRectoFile || cniVersoFile) && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Sparkles size={20} className="text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900">Scan OCR automatique</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Extrayez automatiquement vos données d'identité depuis vos images CNI
+                          </p>
+                          {scanError && (
+                            <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                              <AlertTriangle size={12} /> {scanError}
+                            </p>
+                          )}
+                          {cniExtractedData && (
+                            <div className="mt-3 p-3 bg-white rounded-xl border border-primary/20 space-y-1.5">
+                              <p className="text-xs font-semibold text-primary flex items-center gap-1">
+                                <CheckCircle size={12} /> Données extraites avec succès
+                              </p>
+                              {cniExtractedData.lastName && (
+                                <p className="text-xs text-gray-600"><span className="font-medium">Nom :</span> {cniExtractedData.lastName}</p>
+                              )}
+                              {cniExtractedData.firstName && (
+                                <p className="text-xs text-gray-600"><span className="font-medium">Prénom :</span> {cniExtractedData.firstName}</p>
+                              )}
+                              {cniExtractedData.dateOfBirth && (
+                                <p className="text-xs text-gray-600"><span className="font-medium">Date de naissance :</span> {cniExtractedData.dateOfBirth}</p>
+                              )}
+                              {cniExtractedData.cniNumber && (
+                                <p className="text-xs text-gray-600"><span className="font-medium">N° CNI :</span> {cniExtractedData.cniNumber}</p>
+                              )}
+                              {cniExtractedData.expirationDate && (
+                                <p className="text-xs text-gray-600"><span className="font-medium">Expiration :</span> {cniExtractedData.expirationDate}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleScanCni}
+                          disabled={isScanningCni}
+                          className="flex-shrink-0"
+                        >
+                          {isScanningCni ? (
+                            <><Loader2 size={14} className="animate-spin" /> Scan...</>
+                          ) : (
+                            <><Sparkles size={14} /> Scanner</>
+                          )}
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               </div>
             )}

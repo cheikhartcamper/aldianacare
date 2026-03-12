@@ -38,6 +38,46 @@ export interface PaginatedRegistrations {
   };
 }
 
+export interface Declaration {
+  id: string;
+  declarationNumber: string;
+  userId: string;
+  trustedPersonId: string;
+  declarantFirstName: string;
+  declarantLastName: string;
+  declarantPhone: string;
+  deathDate: string;
+  deathPlace: string;
+  deathCertificatePath: string;
+  deathTypeCertificatePath: string;
+  additionalInfo: string | null;
+  status: 'pending' | 'in_review' | 'approved' | 'rejected';
+  rejectionReason: string | null;
+  adminNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deceased?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    repatriationCountry: string;
+  };
+}
+
+export interface PaginatedDeclarations {
+  declarations: Declaration[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  filter: {
+    status: string;
+  };
+}
+
 // ===== Admin API calls =====
 
 export const adminService = {
@@ -80,6 +120,24 @@ export const adminService = {
   /** PUT /api/admin/registrations/:id/reject */
   async rejectRegistration(id: string, reason: string): Promise<ApiResponse<User>> {
     const { data } = await api.put<ApiResponse<User>>(`/admin/registrations/${id}/reject`, { reason });
+    return data;
+  },
+
+  /** GET /api/admin/declarations */
+  async getDeclarations(params?: { status?: string; page?: number; limit?: number }): Promise<ApiResponse<PaginatedDeclarations>> {
+    const { data } = await api.get<ApiResponse<PaginatedDeclarations>>('/admin/declarations', { params });
+    return data;
+  },
+
+  /** PUT /api/admin/declarations/:id/approve */
+  async approveDeclaration(id: string): Promise<ApiResponse<Declaration>> {
+    const { data } = await api.put<ApiResponse<Declaration>>(`/admin/declarations/${id}/approve`);
+    return data;
+  },
+
+  /** PUT /api/admin/declarations/:id/reject */
+  async rejectDeclaration(id: string, reason: string): Promise<ApiResponse<Declaration>> {
+    const { data } = await api.put<ApiResponse<Declaration>>(`/admin/declarations/${id}/reject`, { reason });
     return data;
   },
 };

@@ -137,6 +137,7 @@ export function PublicLayout() {
                 <li><Link to="/comment-ca-marche" className="hover:text-white transition-colors">Comment ça marche</Link></li>
                 <li><Link to="/parrainage" className="hover:text-white transition-colors">Parrainage</Link></li>
                 <li><Link to="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+                <li><Link to="/declaration/search" className="hover:text-white transition-colors text-gray-400">Déclarer un décès</Link></li>
               </ul>
             </div>
             <div>
