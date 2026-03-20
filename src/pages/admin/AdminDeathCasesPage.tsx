@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, Search, Eye, MapPin, Calendar, Phone, User,
-  ChevronLeft, ChevronRight, Plane, FileText, Download, Clock,
+  Search, Eye, MapPin, Calendar, Phone, User, AlertTriangle,
+  ChevronLeft, ChevronRight, Plane, FileText, Download,
   CheckCircle, RefreshCw
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, PageLoader } from '@/components/ui';
@@ -48,7 +48,7 @@ export function AdminDeathCasesPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dossiers de décès</h1>
@@ -206,7 +206,7 @@ export function AdminDeathCasesPage() {
 
       {/* Detail Modal */}
       {selected && (
-        <Modal onClose={() => setSelected(null)} size="lg">
+        <Modal isOpen={!!selected} onClose={() => setSelected(null)} size="lg">
           <div className="space-y-5">
             <div className="flex items-start justify-between">
               <div>
@@ -263,7 +263,7 @@ export function AdminDeathCasesPage() {
                 </h3>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {selected.deathCertificatePath && (
-                    <a href={getImageUrl(selected.deathCertificatePath)} target="_blank" rel="noopener noreferrer"
+                    <a href={getImageUrl(selected.deathCertificatePath) ?? ''} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:border-primary/30 hover:bg-primary/5 transition-colors group">
                       <Download size={16} className="text-primary" />
                       <div>
@@ -273,7 +273,7 @@ export function AdminDeathCasesPage() {
                     </a>
                   )}
                   {selected.deathTypeCertificatePath && (
-                    <a href={getImageUrl(selected.deathTypeCertificatePath)} target="_blank" rel="noopener noreferrer"
+                    <a href={getImageUrl(selected.deathTypeCertificatePath) ?? ''} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:border-primary/30 hover:bg-primary/5 transition-colors group">
                       <Download size={16} className="text-gold-dark" />
                       <div>

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
+  FileText, Search, Eye, CheckCircle, XCircle, Clock, Shield,
   MapPin, Calendar, Phone, User, ChevronLeft, ChevronRight, Filter,
-  Download, Shield, Loader2, RefreshCw
+  Download, Loader2, RefreshCw
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, PageLoader } from '@/components/ui';
 import { adminService, type Declaration } from '@/services/admin.service';
@@ -106,7 +106,7 @@ export function AdminDeclarationsPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Déclarations de décès</h1>
@@ -128,7 +128,7 @@ export function AdminDeclarationsPage() {
       </motion.div>
 
       {/* Filters */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' as const }}>
         <Card>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -175,7 +175,7 @@ export function AdminDeclarationsPage() {
           </div>
         </Card>
       ) : (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' as const }}>
           <Card padding="none">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -273,7 +273,7 @@ export function AdminDeclarationsPage() {
       {/* Detail Modal */}
       <AnimatePresence>
         {showDetail && selectedDeclaration && (
-          <Modal onClose={() => setShowDetail(false)} size="lg">
+          <Modal isOpen={showDetail} onClose={() => setShowDetail(false)} size="lg">
             <div className="space-y-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -376,7 +376,7 @@ export function AdminDeclarationsPage() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {selectedDeclaration.deathCertificatePath && (
                     <a
-                      href={getImageUrl(selectedDeclaration.deathCertificatePath)}
+                      href={getImageUrl(selectedDeclaration.deathCertificatePath) ?? ''}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:bg-primary/5 transition-colors group"
@@ -392,7 +392,7 @@ export function AdminDeclarationsPage() {
                   )}
                   {selectedDeclaration.deathTypeCertificatePath && (
                     <a
-                      href={getImageUrl(selectedDeclaration.deathTypeCertificatePath)}
+                      href={getImageUrl(selectedDeclaration.deathTypeCertificatePath) ?? ''}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:bg-primary/5 transition-colors group"
@@ -448,7 +448,7 @@ export function AdminDeclarationsPage() {
       {/* Approve confirmation modal */}
       <AnimatePresence>
         {showApproveModal && selectedDeclaration && (
-          <Modal onClose={() => setShowApproveModal(false)}>
+          <Modal isOpen={showApproveModal} onClose={() => setShowApproveModal(false)}>
             <div className="text-center space-y-4">
               <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
                 <CheckCircle size={28} className="text-primary" />
@@ -472,7 +472,7 @@ export function AdminDeclarationsPage() {
       {/* Reject modal */}
       <AnimatePresence>
         {showRejectModal && selectedDeclaration && (
-          <Modal onClose={() => { setShowRejectModal(false); setRejectReason(''); }}>
+          <Modal isOpen={showRejectModal} onClose={() => { setShowRejectModal(false); setRejectReason(''); }}>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, CreditCard, AlertCircle, ArrowUpRight,
-  Loader2, CheckCircle, ArrowRight, AlertTriangle, FileText, Globe
+  Users, AlertCircle, ArrowUpRight,
+  Loader2, CheckCircle, ArrowRight, FileText, Globe
 } from 'lucide-react';
 import { Card, Badge, PageLoader } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';

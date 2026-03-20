@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, Search, Eye, Users, Calendar, MapPin, Phone,
-  ChevronLeft, ChevronRight, Shield, CheckCircle, RefreshCw
+  ChevronLeft, ChevronRight, Shield, RefreshCw
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, PageLoader } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
@@ -15,7 +15,7 @@ export function AdminContractsPage() {
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'individual' | 'family'>('all');
   const [selected, setSelected] = useState<UserWithTrusted | null>(null);
-  const [loadingUser, setLoadingUser] = useState(false);
+  const [, setLoadingUser] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchContracts = useCallback(async (showLoader = true) => {
@@ -61,7 +61,7 @@ export function AdminContractsPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Gestion des contrats</h1>
@@ -199,7 +199,7 @@ export function AdminContractsPage() {
 
       {/* Detail Modal */}
       {selected && (
-        <Modal onClose={() => setSelected(null)} size="lg">
+        <Modal isOpen={!!selected} onClose={() => setSelected(null)} size="lg">
           <div className="space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-base font-bold text-primary">

@@ -63,7 +63,7 @@ export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageL
           {/* Green circle + bird */}
           <motion.div
             animate={{ scale: [1, 1.06, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' as const }}
             className="relative z-10 flex items-center justify-center"
             style={{
               width: circle, height: circle,
@@ -85,7 +85,7 @@ export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageL
               <motion.div
                 key={i}
                 animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+                transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' as const }}
                 style={{ width: size === 'sm' ? 5 : 6, height: size === 'sm' ? 5 : 6, borderRadius: '50%', backgroundColor: '#F2C94C' }}
               />
             ))}
@@ -162,7 +162,7 @@ export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageL
           {/* Green circle with white bird */}
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' as const }}
             className="relative z-10 flex items-center justify-center"
             style={{
               width: 76,
@@ -201,7 +201,7 @@ export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageL
                   duration: 0.9,
                   repeat: Infinity,
                   delay: i * 0.18,
-                  ease: 'easeInOut',
+                  ease: 'easeInOut' as const,
                 }}
                 style={{
                   width: 7,

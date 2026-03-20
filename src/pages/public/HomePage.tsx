@@ -211,7 +211,7 @@ export function HomePage() {
                 {/* Floating cards */}
                 <motion.div
                   animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                  transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' as const }}
                   className="absolute -right-4 top-8 bg-white rounded-xl shadow-lg p-4 border border-gray-100"
                 >
                   <div className="flex items-center gap-3">
@@ -227,7 +227,7 @@ export function HomePage() {
 
                 <motion.div
                   animate={{ y: [0, 8, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' as const }}
                   className="absolute -left-4 bottom-12 bg-white rounded-xl shadow-lg p-4 border border-gray-100"
                 >
                   <div className="flex items-center gap-3">

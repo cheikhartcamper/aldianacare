@@ -21,7 +21,7 @@ export function AdminPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
         <h1 className="text-2xl font-bold text-gray-900">Suivi des paiements</h1>
         <p className="text-sm text-gray-500 mt-1">Historique et suivi des cotisations de la plateforme.</p>
       </motion.div>

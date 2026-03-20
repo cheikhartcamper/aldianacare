@@ -107,7 +107,7 @@ export function SearchDeceasedPage() {
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gold/10 rounded-full blur-[80px]" />
         </div>
         <div className="max-w-3xl mx-auto px-4 py-10 text-center relative">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wide mb-3 border border-primary/20">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               Étape 1 sur 5
@@ -125,7 +125,7 @@ export function SearchDeceasedPage() {
       {/* Main form */}
       <section className="pb-16">
         <div className="max-w-2xl mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' as const }}>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg shadow-primary/5 p-6 lg:p-8">
               {/* Search type tabs */}
               <div className="grid grid-cols-3 gap-2 mb-8 p-1.5 bg-primary-50/50 rounded-xl border border-primary/10">
@@ -212,7 +212,7 @@ export function SearchDeceasedPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  transition={{ duration: 0.5, ease: 'easeOut' as const }}
                   className="mt-8 pt-8 border-t border-primary/10"
                 >
                   <div className="flex items-center gap-2 mb-4">

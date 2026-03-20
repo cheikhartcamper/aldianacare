@@ -385,7 +385,7 @@ export function AdminSettingsPage() {
           {/* Country Create/Edit Modal */}
           <AnimatePresence>
             {countryModal && (
-              <Modal onClose={() => setCountryModal(false)}>
+              <Modal isOpen={countryModal} onClose={() => setCountryModal(false)}>
                 <div className="space-y-5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -525,7 +525,7 @@ export function AdminSettingsPage() {
           {/* Manager Create Modal */}
           <AnimatePresence>
             {managerModal && (
-              <Modal onClose={() => setManagerModal(false)}>
+              <Modal isOpen={managerModal} onClose={() => setManagerModal(false)}>
                 <div className="space-y-5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">

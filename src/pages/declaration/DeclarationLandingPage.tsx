@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Search, UserCheck, MessageSquare, ShieldCheck, FileUp,
-  ArrowRight, CheckCircle2, Clock, FileText, Phone, Shield
+  ArrowRight, CheckCircle2, Clock, FileText, Phone
 } from 'lucide-react';
 import { Button, Logo } from '@/components/ui';
 
 const fade = {
   hidden: { opacity: 0, y: 20 },
-  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.15, duration: 0.6, ease: 'easeOut' } }),
+  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.15, duration: 0.6, ease: 'easeOut' as const } }),
 };
 
 export function DeclarationLandingPage() {

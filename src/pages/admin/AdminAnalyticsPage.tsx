@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  BarChart3, Users, FileText, Globe, TrendingUp, AlertTriangle,
+  Users, FileText, Globe,
   CheckCircle, Clock, XCircle, Plane, MapPin
 } from 'lucide-react';
-import { Card, Badge, PageLoader } from '@/components/ui';
-import { adminService, type UserWithTrusted, type Declaration, type Country } from '@/services/admin.service';
+import { Card, PageLoader } from '@/components/ui';
+import { adminService, type Country } from '@/services/admin.service';
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-const COLORS = ['#0F5F43', '#F2C94C', '#3B82F6', '#EF4444', '#8B5CF6', '#06B6D4'];
-
 export function AdminAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
   const [approvedUsers, setApprovedUsers] = useState(0);
-  const [pendingUsers, setPendingUsers] = useState(0);
-  const [rejectedUsers, setRejectedUsers] = useState(0);
+  const [, setPendingUsers] = useState(0);
+  const [, setRejectedUsers] = useState(0);
   const [totalDeclarations, setTotalDeclarations] = useState(0);
   const [pendingDecl, setPendingDecl] = useState(0);
   const [approvedDecl, setApprovedDecl] = useState(0);
@@ -113,7 +111,7 @@ export function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' as const }}>
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <p className="text-sm text-gray-500 mt-1">Statistiques détaillées de la plateforme Aldiana Care — données en temps réel.</p>
       </motion.div>
