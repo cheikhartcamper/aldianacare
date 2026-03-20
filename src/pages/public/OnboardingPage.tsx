@@ -1,14 +1,16 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Shield, CheckCircle, ArrowRight, ArrowLeft, User, Mail, Phone,
-  MapPin, Camera, Upload, FileText, Users,
+  MapPin, Camera, Upload, FileText, Users, Gift,
   Sparkles, Eye, EyeOff, X, Check, Lock, AlertTriangle, Loader2
 } from 'lucide-react';
 import { Button, Card, Input } from '@/components/ui';
 import { Logo } from '@/components/ui';
 import { authService, type ScanCniResponse } from '@/services/auth.service';
+import { adminService } from '@/services/admin.service';
+import { referralService } from '@/services/referral.service';
 
 const plans = [
   {
@@ -99,6 +101,14 @@ export function OnboardingPage() {
   const [residenceCountry, setResidenceCountry] = useState('');
   const [residenceAddress, setResidenceAddress] = useState('');
   const [repatriationCountry, setRepatriationCountry] = useState('');
+  const [residenceCountries, setResidenceCountries] = useState<Array<{ id: string; name: string }>>([]);
+  const [repatriationCountries, setRepatriationCountries] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Referral code
+  const [referralCode, setReferralCode] = useState('');
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [referralMsg, setReferralMsg] = useState('');
+  const [validatingReferral, setValidatingReferral] = useState(false);
 
   // Files
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -124,6 +134,26 @@ export function OnboardingPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cniRectoRef = useRef<HTMLInputElement>(null);
   const cniVersoRef = useRef<HTMLInputElement>(null);
+
+  // Load public countries for registration form
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCountries = async () => {
+      try {
+        const res = await adminService.getPublicCountries();
+        if (!isMounted || !res.success) return;
+        setResidenceCountries(res.data.residence || []);
+        setRepatriationCountries(res.data.repatriation || []);
+      } catch {
+        // Fallback: keep free text inputs if countries endpoint is unavailable
+      }
+    };
+
+    void fetchCountries();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Handle OCR scan
   const handleScanCni = async () => {
@@ -257,6 +287,7 @@ export function OnboardingPage() {
       formData.append('repatriationCountry', repatriationCountry);
       formData.append('phoneVerificationToken', phoneVerificationToken);
       formData.append('trustedPersons', JSON.stringify(trustedPersons));
+      if (referralCode.trim()) formData.append('referralCode', referralCode.trim());
 
       if (photoFile) formData.append('identityPhoto', photoFile);
       if (cniRectoFile) formData.append('cniRecto', cniRectoFile);
@@ -546,10 +577,87 @@ export function OnboardingPage() {
                     </div>
                     <Input label="Adresse de résidence" placeholder="Adresse complète" icon={<MapPin size={16} />} value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} required />
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input label="Pays de résidence" placeholder="France" icon={<MapPin size={16} />} value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} required />
-                      <Input label="Pays de rapatriement" placeholder="Sénégal" icon={<MapPin size={16} />} value={repatriationCountry} onChange={(e) => setRepatriationCountry(e.target.value)} required />
+                      <div>
+                        {residenceCountries.length > 0 ? (
+                          <>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays de résidence</label>
+                            <select
+                              value={residenceCountry}
+                              onChange={(e) => setResidenceCountry(e.target.value)}
+                              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                              required
+                            >
+                              <option value="">Sélectionnez</option>
+                              {residenceCountries.map((country) => (
+                                <option key={country.id} value={country.name}>{country.name}</option>
+                              ))}
+                            </select>
+                          </>
+                        ) : (
+                          <Input label="Pays de résidence" placeholder="France" icon={<MapPin size={16} />} value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} required />
+                        )}
+                      </div>
+                      <div>
+                        {repatriationCountries.length > 0 ? (
+                          <>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays de rapatriement</label>
+                            <select
+                              value={repatriationCountry}
+                              onChange={(e) => setRepatriationCountry(e.target.value)}
+                              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                              required
+                            >
+                              <option value="">Sélectionnez</option>
+                              {repatriationCountries.map((country) => (
+                                <option key={country.id} value={country.name}>{country.name}</option>
+                              ))}
+                            </select>
+                          </>
+                        ) : (
+                          <Input label="Pays de rapatriement" placeholder="Sénégal" icon={<MapPin size={16} />} value={repatriationCountry} onChange={(e) => setRepatriationCountry(e.target.value)} required />
+                        )}
+                      </div>
                     </div>
                   </div>
+                </Card>
+
+                {/* Code de parrainage (optionnel) */}
+                <Card>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2"><Gift size={16} className="text-gold-dark" /> Code de parrainage <span className="text-xs font-normal text-gray-400">(optionnel)</span></h3>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: FATOU72A3"
+                      value={referralCode}
+                      onChange={(e) => { setReferralCode(e.target.value.toUpperCase()); setReferralValid(null); setReferralMsg(''); }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!referralCode.trim() || validatingReferral}
+                      onClick={async () => {
+                        setValidatingReferral(true);
+                        setReferralMsg('');
+                        try {
+                          const res = await referralService.validate(referralCode.trim());
+                          if (res.success) {
+                            setReferralValid(true);
+                            setReferralMsg(`Parrain : ${res.data.referrerName} — ${res.data.discountPercent}% de réduction`);
+                          }
+                        } catch {
+                          setReferralValid(false);
+                          setReferralMsg('Code invalide ou inexistant.');
+                        }
+                        setValidatingReferral(false);
+                      }}
+                    >
+                      {validatingReferral ? <Loader2 size={14} className="animate-spin" /> : 'Vérifier'}
+                    </Button>
+                  </div>
+                  {referralMsg && (
+                    <p className={`text-xs mt-2 flex items-center gap-1 ${referralValid ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {referralValid ? <CheckCircle size={12} /> : <AlertTriangle size={12} />} {referralMsg}
+                    </p>
+                  )}
                 </Card>
               </div>
             )}
@@ -775,9 +883,41 @@ export function OnboardingPage() {
                         {/* Show residence fields for adults */}
                         {m.dateOfBirth && new Date().getFullYear() - new Date(m.dateOfBirth).getFullYear() >= 18 && (
                           <>
-                            <Input label="Pays de résidence" placeholder="France" value={m.residenceCountry} onChange={(e) => updateMember(idx, 'residenceCountry', e.target.value)} />
+                            {residenceCountries.length > 0 ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays de résidence</label>
+                                <select
+                                  value={m.residenceCountry}
+                                  onChange={(e) => updateMember(idx, 'residenceCountry', e.target.value)}
+                                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                                >
+                                  <option value="">Sélectionnez</option>
+                                  {residenceCountries.map((country) => (
+                                    <option key={country.id} value={country.name}>{country.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <Input label="Pays de résidence" placeholder="France" value={m.residenceCountry} onChange={(e) => updateMember(idx, 'residenceCountry', e.target.value)} />
+                            )}
                             <Input label="Adresse de résidence" placeholder="Adresse complète" value={m.residenceAddress} onChange={(e) => updateMember(idx, 'residenceAddress', e.target.value)} />
-                            <Input label="Pays de rapatriement" placeholder="Sénégal" value={m.repatriationCountry} onChange={(e) => updateMember(idx, 'repatriationCountry', e.target.value)} />
+                            {repatriationCountries.length > 0 ? (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays de rapatriement</label>
+                                <select
+                                  value={m.repatriationCountry}
+                                  onChange={(e) => updateMember(idx, 'repatriationCountry', e.target.value)}
+                                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                                >
+                                  <option value="">Sélectionnez</option>
+                                  {repatriationCountries.map((country) => (
+                                    <option key={country.id} value={country.name}>{country.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <Input label="Pays de rapatriement" placeholder="Sénégal" value={m.repatriationCountry} onChange={(e) => updateMember(idx, 'repatriationCountry', e.target.value)} />
+                            )}
                             <div className="grid sm:grid-cols-2 gap-3">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">CNI Recto (obligatoire)</label>

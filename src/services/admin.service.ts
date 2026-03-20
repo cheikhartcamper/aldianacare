@@ -78,6 +78,49 @@ export interface PaginatedDeclarations {
   };
 }
 
+export interface Country {
+  id: string;
+  name: string;
+  type: 'residence' | 'repatriation';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CountriesResponse {
+  countries: Country[];
+  summary: { total: number; residence: number; repatriation: number };
+  grouped: { residence: Country[]; repatriation: Country[] };
+}
+
+export interface PublicCountriesResponse {
+  residence: { id: string; name: string }[];
+  repatriation: { id: string; name: string }[];
+}
+
+export interface CountryManager {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: 'country_manager';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  assignedCountry: {
+    id: string;
+    name: string;
+    type: string;
+    isActive?: boolean;
+  };
+}
+
+export interface CountryManagersResponse {
+  countryManagers: CountryManager[];
+  total: number;
+}
+
 // ===== Admin API calls =====
 
 export const adminService = {
@@ -138,6 +181,52 @@ export const adminService = {
   /** PUT /api/admin/declarations/:id/reject */
   async rejectDeclaration(id: string, reason: string): Promise<ApiResponse<Declaration>> {
     const { data } = await api.put<ApiResponse<Declaration>>(`/admin/declarations/${id}/reject`, { reason });
+    return data;
+  },
+
+  // ===== Countries =====
+
+  /** GET /api/admin/countries */
+  async getCountries(params?: { type?: string; active?: string }): Promise<ApiResponse<CountriesResponse>> {
+    const { data } = await api.get<ApiResponse<CountriesResponse>>('/admin/countries', { params });
+    return data;
+  },
+
+  /** POST /api/admin/countries */
+  async createCountry(payload: { name: string; type: 'residence' | 'repatriation'; isActive?: boolean }): Promise<ApiResponse<Country>> {
+    const { data } = await api.post<ApiResponse<Country>>('/admin/countries', payload);
+    return data;
+  },
+
+  /** PUT /api/admin/countries/:id */
+  async updateCountry(id: string, payload: { name?: string; type?: string; isActive?: boolean }): Promise<ApiResponse<Country>> {
+    const { data } = await api.put<ApiResponse<Country>>(`/admin/countries/${id}`, payload);
+    return data;
+  },
+
+  /** DELETE /api/admin/countries/:id */
+  async deleteCountry(id: string): Promise<ApiResponse<null>> {
+    const { data } = await api.delete<ApiResponse<null>>(`/admin/countries/${id}`);
+    return data;
+  },
+
+  /** GET /api/countries (public) */
+  async getPublicCountries(type?: string): Promise<ApiResponse<PublicCountriesResponse>> {
+    const { data } = await api.get<ApiResponse<PublicCountriesResponse>>('/countries', { params: type ? { type } : undefined });
+    return data;
+  },
+
+  // ===== Country Managers =====
+
+  /** POST /api/admin/country-managers */
+  async createCountryManager(payload: { firstName: string; lastName: string; email: string; phone: string; countryId: string }): Promise<ApiResponse<CountryManager>> {
+    const { data } = await api.post<ApiResponse<CountryManager>>('/admin/country-managers', payload);
+    return data;
+  },
+
+  /** GET /api/admin/country-managers */
+  async getCountryManagers(params?: { countryId?: string; active?: string }): Promise<ApiResponse<CountryManagersResponse>> {
+    const { data } = await api.get<ApiResponse<CountryManagersResponse>>('/admin/country-managers', { params });
     return data;
   },
 };

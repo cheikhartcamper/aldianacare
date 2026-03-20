@@ -16,11 +16,11 @@ const adminLinks = [
   { label: 'Déclarations', path: '/admin/declarations', icon: AlertTriangle, available: true },
   { label: 'Utilisateurs', path: '/admin/utilisateurs', icon: Users, available: true },
   { label: 'Paramètres', path: '/admin/parametres', icon: Settings, available: true },
-  { label: 'Contrats', path: '/admin/contrats', icon: FileText, available: false },
-  { label: 'Paiements', path: '/admin/paiements', icon: CreditCard, available: false },
-  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: AlertTriangle, available: false },
-  { label: 'Commissions', path: '/admin/commissions', icon: Gift, available: false },
-  { label: 'Analytics', path: '/admin/analytics', icon: BarChart3, available: false },
+  { label: 'Contrats', path: '/admin/contrats', icon: FileText, available: true },
+  { label: 'Paiements', path: '/admin/paiements', icon: CreditCard, available: true },
+  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: AlertTriangle, available: true },
+  { label: 'Commissions', path: '/admin/commissions', icon: Gift, available: true },
+  { label: 'Analytics', path: '/admin/analytics', icon: BarChart3, available: true },
 ];
 
 export function AdminLayout() {

@@ -12,6 +12,8 @@ import { OffersPage } from '@/pages/public/OffersPage';
 import { FAQPage } from '@/pages/public/FAQPage';
 import { ContactPage } from '@/pages/public/ContactPage';
 import { SponsorshipPage } from '@/pages/public/SponsorshipPage';
+import { SubscriptionSuccessPage } from '@/pages/subscription/SubscriptionSuccessPage';
+import { SubscriptionCancelPage } from '@/pages/subscription/SubscriptionCancelPage';
 
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { OnboardingPage } from '@/pages/public/OnboardingPage';
@@ -54,6 +56,8 @@ function App() {
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/parrainage" element={<SponsorshipPage />} />
+            <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
+            <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
           </Route>
 
           {/* Auth pages (standalone layouts) */}

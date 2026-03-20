@@ -3,7 +3,7 @@
 ## 📋 Prérequis
 
 - VPS avec Nginx installé
-- Domaine `aldianacare.com` pointant vers votre VPS (192.162.70.251)
+- Domaine `aldiianacare.online` pointant vers votre VPS (192.162.70.251)
 - Accès SSH au VPS (root@192.162.70.251)
 - Git configuré (optionnel, pour versioning)
 
@@ -40,8 +40,8 @@ systemctl reload nginx
 apt update
 apt install certbot python3-certbot-nginx -y
 
-# Obtenir le certificat SSL pour aldianacare.com
-certbot --nginx -d aldianacare.com -d www.aldianacare.com
+# Obtenir le certificat SSL pour aldiianacare.online
+certbot --nginx -d aldiianacare.online -d www.aldiianacare.online
 
 # Vérifier le renouvellement automatique
 certbot renew --dry-run
@@ -106,7 +106,7 @@ nginx -t && systemctl reload nginx
 
 **5. (Navigateur) Vérification**
 
-- Ouvre https://aldianacare.com
+- Ouvre https://aldiianacare.online
 - Fais **Ctrl+F5** (force refresh)
 - Teste la navigation et les fonctionnalités
 
@@ -135,7 +135,7 @@ nginx -t && systemctl reload nginx
 **4. (VPS) Test API via proxy (si backend configuré)**
 
 ```bash
-curl -I https://aldianacare.com/api/auth/login
+curl -I https://aldiianacare.online/api/auth/login
 # 405 est OK (car login attend POST)
 ```
 
@@ -169,7 +169,7 @@ netstat -tlnp | grep 3000  # vérifier que le port 3000 écoute
 
 ```bash
 # Renouveler le certificat
-certbot renew --force-renewal -d aldianacare.com -d www.aldianacare.com
+certbot renew --force-renewal -d aldiianacare.online -d www.aldiianacare.online
 
 # Vérifier la configuration SSL
 nginx -t
@@ -179,7 +179,7 @@ nginx -t
 
 ## 📝 Notes Importantes
 
-1. **DNS**: Assurez-vous que `aldianacare.com` et `www.aldianacare.com` pointent vers `192.162.70.251`
+1. **DNS**: Assurez-vous que `aldiianacare.online` et `www.aldiianacare.online` pointent vers `192.162.70.251`
 2. **Firewall**: Ports 80 et 443 doivent être ouverts sur le VPS
 3. **Backend**: Si vous avez un backend Node.js, configurez-le séparément avec PM2 ou systemd
 4. **Cache**: Toujours faire Ctrl+F5 après déploiement pour voir les changements
@@ -192,7 +192,7 @@ nginx -t
 - [ ] Upload vers VPS terminé
 - [ ] Permissions fixées
 - [ ] Nginx reload sans erreur
-- [ ] Site accessible via https://aldianacare.com
+- [ ] Site accessible via https://aldiianacare.online
 - [ ] Ctrl+F5 pour vider le cache
 - [ ] Test de navigation (toutes les pages)
 - [ ] Test des formulaires (login, etc.)

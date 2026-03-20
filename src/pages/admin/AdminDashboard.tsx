@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, CreditCard, AlertCircle, ArrowUpRight,
-  Loader2, CheckCircle, ArrowRight, AlertTriangle
+  Loader2, CheckCircle, ArrowRight, AlertTriangle, FileText, Globe
 } from 'lucide-react';
 import { Card, Badge, PageLoader } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
@@ -32,14 +32,19 @@ export function AdminDashboard() {
   const [pendingRegistrations, setPendingRegistrations] = useState<UserWithTrusted[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [declarationsCount, setDeclarationsCount] = useState(0);
+  const [pendingDeclarations, setPendingDeclarations] = useState(0);
+  const [countriesCount, setCountriesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
-      const [usersRes, pendingRes] = await Promise.all([
+      const [usersRes, pendingRes, declRes, countriesRes] = await Promise.all([
         adminService.getUsers({ limit: 5, page: 1 }),
         adminService.getRegistrations({ status: 'pending', limit: 5 }),
+        adminService.getDeclarations({ limit: 1 }),
+        adminService.getCountries().catch(() => null),
       ]);
       if (usersRes.success) {
         setRecentUsers(usersRes.data.users);
@@ -48,6 +53,15 @@ export function AdminDashboard() {
       if (pendingRes.success) {
         setPendingRegistrations(pendingRes.data.registrations);
         setPendingCount(pendingRes.data.pagination.total);
+      }
+      if (declRes.success) {
+        setDeclarationsCount(declRes.data.pagination.total);
+        // Fetch pending declarations count separately
+        const pendingDeclRes = await adminService.getDeclarations({ status: 'pending', limit: 1 });
+        if (pendingDeclRes.success) setPendingDeclarations(pendingDeclRes.data.pagination.total);
+      }
+      if (countriesRes?.success) {
+        setCountriesCount(countriesRes.data.countries.length);
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -111,24 +125,35 @@ export function AdminDashboard() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <Card>
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
-              <CreditCard size={20} className="text-gray-300" />
+          <Card className={pendingDeclarations > 0 ? 'ring-2 ring-red-200 ring-offset-1' : ''}>
+            <div className="flex items-start justify-between">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${pendingDeclarations > 0 ? 'bg-red-50' : 'bg-primary/10'}`}>
+                <FileText size={20} className={pendingDeclarations > 0 ? 'text-red-500' : 'text-primary'} />
+              </div>
+              <Link to="/admin/declarations">
+                <ArrowUpRight size={15} className="text-primary" />
+              </Link>
             </div>
-            <p className="text-xs text-gray-400 mt-3">Revenu mensuel</p>
-            <p className="text-3xl font-bold text-gray-300 mt-0.5">—</p>
-            <p className="text-[10px] text-gray-300 mt-0.5">API non disponible</p>
+            <p className="text-xs text-gray-400 mt-3">Déclarations</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : declarationsCount}</p>
+            {pendingDeclarations > 0 && (
+              <p className="text-[10px] text-red-500 font-semibold mt-0.5">{pendingDeclarations} en attente</p>
+            )}
           </Card>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card>
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
-              <AlertTriangle size={20} className="text-gray-300" />
+            <div className="flex items-start justify-between">
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                <Globe size={20} className="text-gold-dark" />
+              </div>
+              <Link to="/admin/parametres">
+                <ArrowUpRight size={15} className="text-gold-dark" />
+              </Link>
             </div>
-            <p className="text-xs text-gray-400 mt-3">Dossiers décès</p>
-            <p className="text-3xl font-bold text-gray-300 mt-0.5">—</p>
-            <p className="text-[10px] text-gray-300 mt-0.5">API non disponible</p>
+            <p className="text-xs text-gray-400 mt-3">Pays couverts</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : countriesCount}</p>
           </Card>
         </motion.div>
       </div>

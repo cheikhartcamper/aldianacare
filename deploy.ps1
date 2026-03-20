@@ -70,5 +70,5 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Deployment completed successfully!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Visit: https://aldianacare.com" -ForegroundColor Cyan
+Write-Host "Visit: https://aldiianacare.online" -ForegroundColor Cyan
 Write-Host "Press Ctrl+F5 to force refresh" -ForegroundColor Yellow

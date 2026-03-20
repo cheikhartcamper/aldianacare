@@ -122,6 +122,16 @@ export interface ScanCniResponse {
   };
 }
 
+export interface ForgotPasswordResponse {
+  method: string;
+  expiresIn: string;
+}
+
+export interface VerifyResetOtpResponse {
+  resetToken: string;
+  expiresIn: string;
+}
+
 // ===== Auth API calls =====
 
 export const authService = {
@@ -134,6 +144,24 @@ export const authService = {
   /** POST /api/auth/send-otp */
   async sendOtp(phone: string): Promise<ApiResponse<OtpSendResponse>> {
     const { data } = await api.post<ApiResponse<OtpSendResponse>>('/auth/send-otp', { phone });
+    return data;
+  },
+
+  /** POST /api/auth/forgot-password */
+  async forgotPassword(email: string, method: 'email' | 'whatsapp'): Promise<ApiResponse<ForgotPasswordResponse>> {
+    const { data } = await api.post<ApiResponse<ForgotPasswordResponse>>('/auth/forgot-password', { email, method });
+    return data;
+  },
+
+  /** POST /api/auth/verify-reset-otp */
+  async verifyResetOtp(email: string, code: string): Promise<ApiResponse<VerifyResetOtpResponse>> {
+    const { data } = await api.post<ApiResponse<VerifyResetOtpResponse>>('/auth/verify-reset-otp', { email, code });
+    return data;
+  },
+
+  /** POST /api/auth/reset-password */
+  async resetPassword(resetToken: string, newPassword: string, confirmPassword: string): Promise<ApiResponse<null>> {
+    const { data } = await api.post<ApiResponse<null>>('/auth/reset-password', { resetToken, newPassword, confirmPassword });
     return data;
   },
 

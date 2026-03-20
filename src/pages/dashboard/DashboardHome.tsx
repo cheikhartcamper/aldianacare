@@ -105,49 +105,49 @@ export function DashboardHome() {
 
         {/* Contrats block */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="h-full border-t-4 border-t-gold">
-            <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-4">CONTRAT</h3>
+          <div className="h-full bg-gold rounded-2xl p-6 shadow-lg">
+            <h3 className="text-xs uppercase tracking-wider text-gray-700 font-semibold mb-4">CONTRAT</h3>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-secondary">
-                <Shield size={18} className="text-primary" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/40">
+                <Shield size={18} className="text-gray-800" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Formule {planLabel}</p>
-                  <p className="text-xs text-gray-400">Inscrit le {user ? new Date(user.createdAt).toLocaleDateString('fr-FR') : '—'}</p>
+                  <p className="text-xs text-gray-700">Inscrit le {user ? new Date(user.createdAt).toLocaleDateString('fr-FR') : '—'}</p>
                 </div>
                 <Badge variant={user?.registrationStatus === 'approved' ? 'success' : 'warning'} dot size="sm">
                   {user?.registrationStatus === 'approved' ? 'Actif' : 'En attente'}
                 </Badge>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-gray-100">
-              <Link to="/app/contrat" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+            <div className="mt-4 pt-3 border-t border-gray-700/10">
+              <Link to="/app/contrat" className="text-xs font-semibold text-gray-900 hover:underline flex items-center gap-1">
                 VOIR MON CONTRAT <ChevronRight size={12} />
               </Link>
             </div>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Documents block */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <Card className="h-full border-t-4 border-t-gold">
-            <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-4">DOCUMENTS</h3>
+          <div className="h-full bg-primary rounded-2xl p-6 shadow-lg">
+            <h3 className="text-xs uppercase tracking-wider text-white/60 font-semibold mb-4">DOCUMENTS</h3>
             {docCount > 0 ? (
               <div className="py-2">
-                <p className="text-3xl font-bold text-gray-900">{docCount}/3</p>
-                <p className="text-xs text-gray-400 mt-1">documents transmis</p>
+                <p className="text-3xl font-bold text-white">{docCount}/3</p>
+                <p className="text-xs text-white/60 mt-1">documents transmis</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-4 text-center">
-                <FileText size={28} className="text-gray-200 mb-2" />
-                <p className="text-sm text-gray-400">Aucun document</p>
+                <FileText size={28} className="text-white/30 mb-2" />
+                <p className="text-sm text-white/60">Aucun document</p>
               </div>
             )}
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <Link to="/app/documents" className="text-xs font-semibold text-gold-dark hover:underline flex items-center gap-1">
+            <div className="mt-3 pt-3 border-t border-white/20">
+              <Link to="/app/documents" className="text-xs font-semibold text-white hover:underline flex items-center gap-1">
                 TOUS LES DOCUMENTS <ChevronRight size={12} />
               </Link>
             </div>
-          </Card>
+          </div>
         </motion.div>
       </div>
 

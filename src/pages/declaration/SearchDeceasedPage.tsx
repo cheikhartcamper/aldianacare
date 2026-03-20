@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, User, Mail, Phone, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react';
-import { Button, Input, Logo, PageLoader } from '@/components/ui';
+import { Search, User, Mail, Phone, AlertCircle, ArrowRight, CheckCircle, ArrowLeft, Shield } from 'lucide-react';
+import { Button, Input, Logo, PageLoader, StepProgress } from '@/components/ui';
 import { declarationService, type DeceasedUser } from '@/services/declaration.service';
+
+const DECLARATION_STEPS = ['Recherche', 'Identité', 'Code OTP', 'Validation', 'Déclaration'];
 
 export function SearchDeceasedPage() {
   const navigate = useNavigate();
@@ -71,31 +73,49 @@ export function SearchDeceasedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-gold/5">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/">
-            <Logo size="sm" variant="color" />
+      <nav className="sticky top-0 z-50 bg-primary border-b border-primary-dark">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Logo size="sm" variant="white" />
           </Link>
-          <Link to="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-            Retour à l'accueil
-          </Link>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5 text-white/70 text-xs">
+              <Shield size={12} />
+              <span>Processus sécurisé</span>
+            </div>
+            <Link to="/" className="text-sm text-white/80 hover:text-white transition-colors flex items-center gap-1">
+              <ArrowLeft size={14} />
+              Accueil
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* Hero compact */}
-      <section className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/70 text-xs font-medium uppercase tracking-wide mb-4 border border-white/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-              Étape 1/5
+      {/* Step Progress */}
+      <div className="bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <StepProgress steps={DECLARATION_STEPS} currentStep={0} />
+        </div>
+      </div>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gold/10 rounded-full blur-[80px]" />
+        </div>
+        <div className="max-w-3xl mx-auto px-4 py-10 text-center relative">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wide mb-3 border border-primary/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              Étape 1 sur 5
             </div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-              Rechercher l'assuré décédé
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+              Rechercher l'assuré <span className="text-primary">décédé</span>
             </h1>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm max-w-md mx-auto">
               Identifiez la personne par son nom, email ou numéro de téléphone
             </p>
           </motion.div>
@@ -103,12 +123,12 @@ export function SearchDeceasedPage() {
       </section>
 
       {/* Main form */}
-      <section className="py-12">
+      <section className="pb-16">
         <div className="max-w-2xl mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 lg:p-8">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg shadow-primary/5 p-6 lg:p-8">
               {/* Search type tabs */}
-              <div className="grid grid-cols-3 gap-2 mb-8 p-1 bg-gray-100 rounded-xl">
+              <div className="grid grid-cols-3 gap-2 mb-8 p-1.5 bg-primary-50/50 rounded-xl border border-primary/10">
                 {[
                   { type: 'name' as const, icon: User, label: 'Par nom' },
                   { type: 'email' as const, icon: Mail, label: 'Par email' },
@@ -119,8 +139,8 @@ export function SearchDeceasedPage() {
                     onClick={() => setSearchType(tab.type)}
                     className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
                       searchType === tab.type
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                        : 'text-gray-600 hover:text-primary hover:bg-white'
                     }`}
                   >
                     <tab.icon size={14} className="inline mr-1.5" />
@@ -181,7 +201,7 @@ export function SearchDeceasedPage() {
                   </motion.div>
                 )}
 
-                <Button type="submit" size="lg" fullWidth disabled={isSearching} className="shadow-lg">
+                <Button type="submit" size="lg" fullWidth disabled={isSearching} className="shadow-lg shadow-primary/20">
                   <Search size={18} />
                   Rechercher
                 </Button>
@@ -190,12 +210,15 @@ export function SearchDeceasedPage() {
               {/* Results */}
               {results.length > 0 && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-8 pt-8 border-t border-gray-100"
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="mt-8 pt-8 border-t border-primary/10"
                 >
                   <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle size={18} className="text-primary" />
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CheckCircle size={14} className="text-primary" />
+                    </div>
                     <p className="font-semibold text-gray-900">
                       {results.length} résultat{results.length > 1 ? 's' : ''} trouvé{results.length > 1 ? 's' : ''}
                     </p>
@@ -205,7 +228,7 @@ export function SearchDeceasedPage() {
                       <button
                         key={deceased.id}
                         onClick={() => handleSelectDeceased(deceased)}
-                        className="w-full p-5 bg-gray-50 hover:bg-primary-50 border-2 border-gray-200 hover:border-primary rounded-xl text-left transition-all group"
+                        className="w-full p-5 bg-gradient-to-r from-primary-50/50 to-transparent hover:from-primary-50 border-2 border-primary/10 hover:border-primary rounded-xl text-left transition-all group"
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
@@ -223,15 +246,17 @@ export function SearchDeceasedPage() {
                               </p>
                             </div>
                             <div className="flex flex-wrap gap-2 mt-3">
-                              <span className="text-xs font-medium bg-white px-2.5 py-1 rounded-lg border border-gray-200">
+                              <span className="text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
                                 {deceased.planType === 'individual' ? 'Plan Individuel' : 'Plan Familial'}
                               </span>
-                              <span className="text-xs font-medium bg-white px-2.5 py-1 rounded-lg border border-gray-200">
+                              <span className="text-xs font-semibold bg-gold/10 text-gold-dark px-2.5 py-1 rounded-lg border border-gold/20">
                                 Rapatriement: {deceased.repatriationCountry}
                               </span>
                             </div>
                           </div>
-                          <ArrowRight size={22} className="text-gray-300 group-hover:text-primary flex-shrink-0" />
+                          <div className="w-10 h-10 rounded-full bg-primary/5 group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all">
+                            <ArrowRight size={18} className="text-primary group-hover:text-white" />
+                          </div>
                         </div>
                       </button>
                     ))}
