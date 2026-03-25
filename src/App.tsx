@@ -1,53 +1,66 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { CountryManagerLayout } from '@/components/layout/CountryManagerLayout';
+import { BrandSpinner } from '@/components/ui/BrandSpinner';
 
-import { HomePage } from '@/pages/public/HomePage';
-import { HowItWorksPage } from '@/pages/public/HowItWorksPage';
-import { OffersPage } from '@/pages/public/OffersPage';
-import { FAQPage } from '@/pages/public/FAQPage';
-import { ContactPage } from '@/pages/public/ContactPage';
-import { SponsorshipPage } from '@/pages/public/SponsorshipPage';
-import { SubscriptionSuccessPage } from '@/pages/subscription/SubscriptionSuccessPage';
-import { SubscriptionCancelPage } from '@/pages/subscription/SubscriptionCancelPage';
+// Lazy-loaded pages (code splitting)
+const HomePage = lazy(() => import('@/pages/public/HomePage').then(m => ({ default: m.HomePage })));
+const HowItWorksPage = lazy(() => import('@/pages/public/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
+const OffersPage = lazy(() => import('@/pages/public/OffersPage').then(m => ({ default: m.OffersPage })));
+const FAQPage = lazy(() => import('@/pages/public/FAQPage').then(m => ({ default: m.FAQPage })));
+const ContactPage = lazy(() => import('@/pages/public/ContactPage').then(m => ({ default: m.ContactPage })));
+const SponsorshipPage = lazy(() => import('@/pages/public/SponsorshipPage').then(m => ({ default: m.SponsorshipPage })));
+const SubscriptionSuccessPage = lazy(() => import('@/pages/subscription/SubscriptionSuccessPage').then(m => ({ default: m.SubscriptionSuccessPage })));
+const SubscriptionCancelPage = lazy(() => import('@/pages/subscription/SubscriptionCancelPage').then(m => ({ default: m.SubscriptionCancelPage })));
 
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { OnboardingPage } from '@/pages/public/OnboardingPage';
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
+const OnboardingPage = lazy(() => import('@/pages/public/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 
-import { SearchDeceasedPage, VerifyDeclarantPage, VerifyOtpPage, CreateDeclarationPage } from '@/pages/declaration';
+const SearchDeceasedPage = lazy(() => import('@/pages/declaration').then(m => ({ default: m.SearchDeceasedPage })));
+const VerifyDeclarantPage = lazy(() => import('@/pages/declaration').then(m => ({ default: m.VerifyDeclarantPage })));
+const VerifyOtpPage = lazy(() => import('@/pages/declaration').then(m => ({ default: m.VerifyOtpPage })));
+const CreateDeclarationPage = lazy(() => import('@/pages/declaration').then(m => ({ default: m.CreateDeclarationPage })));
 
-import { DashboardHome } from '@/pages/dashboard/DashboardHome';
-import { ContractPage } from '@/pages/dashboard/ContractPage';
-import { DashboardOffersPage } from '@/pages/dashboard/DashboardOffersPage';
-import { PaymentsPage } from '@/pages/dashboard/PaymentsPage';
-import { DocumentsPage } from '@/pages/dashboard/DocumentsPage';
-import { TrustedPersonPage } from '@/pages/dashboard/TrustedPersonPage';
-import { FamilyMembersPage } from '@/pages/dashboard/FamilyMembersPage';
-import { SponsorshipDashboard } from '@/pages/dashboard/SponsorshipDashboard';
-import { SupportPage } from '@/pages/dashboard/SupportPage';
-import { NotificationsPage } from '@/pages/dashboard/NotificationsPage';
-import { SettingsPage } from '@/pages/dashboard/SettingsPage';
+const DashboardHome = lazy(() => import('@/pages/dashboard/DashboardHome').then(m => ({ default: m.DashboardHome })));
+const ContractPage = lazy(() => import('@/pages/dashboard/ContractPage').then(m => ({ default: m.ContractPage })));
+const DashboardOffersPage = lazy(() => import('@/pages/dashboard/DashboardOffersPage').then(m => ({ default: m.DashboardOffersPage })));
+const PaymentsPage = lazy(() => import('@/pages/dashboard/PaymentsPage').then(m => ({ default: m.PaymentsPage })));
+const DocumentsPage = lazy(() => import('@/pages/dashboard/DocumentsPage').then(m => ({ default: m.DocumentsPage })));
+const TrustedPersonPage = lazy(() => import('@/pages/dashboard/TrustedPersonPage').then(m => ({ default: m.TrustedPersonPage })));
+const FamilyMembersPage = lazy(() => import('@/pages/dashboard/FamilyMembersPage').then(m => ({ default: m.FamilyMembersPage })));
+const SponsorshipDashboard = lazy(() => import('@/pages/dashboard/SponsorshipDashboard').then(m => ({ default: m.SponsorshipDashboard })));
+const SupportPage = lazy(() => import('@/pages/dashboard/SupportPage').then(m => ({ default: m.SupportPage })));
+const NotificationsPage = lazy(() => import('@/pages/dashboard/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
+const SettingsPage = lazy(() => import('@/pages/dashboard/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
-import { AdminDashboard } from '@/pages/admin/AdminDashboard';
-import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
-import { AdminRegistrationsPage } from '@/pages/admin/AdminRegistrationsPage';
-import { AdminDeclarationsPage } from '@/pages/admin/AdminDeclarationsPage';
-import { AdminContractsPage } from '@/pages/admin/AdminContractsPage';
-import { AdminPaymentsPage } from '@/pages/admin/AdminPaymentsPage';
-import { AdminDeathCasesPage } from '@/pages/admin/AdminDeathCasesPage';
-import { AdminCommissionsPage } from '@/pages/admin/AdminCommissionsPage';
-import { AdminAnalyticsPage } from '@/pages/admin/AdminAnalyticsPage';
-import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
+const AdminRegistrationsPage = lazy(() => import('@/pages/admin/AdminRegistrationsPage').then(m => ({ default: m.AdminRegistrationsPage })));
+const AdminDeclarationsPage = lazy(() => import('@/pages/admin/AdminDeclarationsPage').then(m => ({ default: m.AdminDeclarationsPage })));
+const AdminContractsPage = lazy(() => import('@/pages/admin/AdminContractsPage').then(m => ({ default: m.AdminContractsPage })));
+const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminPaymentsPage').then(m => ({ default: m.AdminPaymentsPage })));
+const AdminDeathCasesPage = lazy(() => import('@/pages/admin/AdminDeathCasesPage').then(m => ({ default: m.AdminDeathCasesPage })));
+const AdminCommissionsPage = lazy(() => import('@/pages/admin/AdminCommissionsPage').then(m => ({ default: m.AdminCommissionsPage })));
+const AdminAnalyticsPage = lazy(() => import('@/pages/admin/AdminAnalyticsPage').then(m => ({ default: m.AdminAnalyticsPage })));
+const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage').then(m => ({ default: m.AdminSettingsPage })));
+
+const CountryManagerDashboard = lazy(() => import('@/pages/country-manager/CountryManagerDashboard').then(m => ({ default: m.CountryManagerDashboard })));
+const CountryManagerUsersPage = lazy(() => import('@/pages/country-manager/CountryManagerUsersPage').then(m => ({ default: m.CountryManagerUsersPage })));
+const CountryManagerDeclarationsPage = lazy(() => import('@/pages/country-manager/CountryManagerDeclarationsPage').then(m => ({ default: m.CountryManagerDeclarationsPage })));
+const CountryManagerProfilePage = lazy(() => import('@/pages/country-manager/CountryManagerProfilePage').then(m => ({ default: m.CountryManagerProfilePage })));
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><BrandSpinner size={40} /></div>}>
+          <Routes>
           {/* Public marketing site */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
@@ -99,7 +112,16 @@ function App() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="parametres" element={<AdminSettingsPage />} />
           </Route>
-        </Routes>
+          {/* Country Manager dashboard — protected (country_manager only) */}
+          <Route path="/country-manager" element={<ProtectedRoute requiredRole="country_manager"><CountryManagerLayout /></ProtectedRoute>}>
+            <Route index element={<CountryManagerDashboard />} />
+            <Route path="assures" element={<CountryManagerUsersPage />} />
+            <Route path="declarations" element={<CountryManagerDeclarationsPage />} />
+            <Route path="profil" element={<CountryManagerProfilePage />} />
+          </Route>
+
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -16,12 +16,14 @@ export interface User {
   cniExtractedData: Record<string, unknown> | null;
   identityPhotoPath: string | null;
   planType: 'individual' | 'family';
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'country_manager';
+  assignedCountryId?: string | null;
   registrationStatus: 'pending' | 'approved' | 'rejected';
   rejectionReason: string | null;
   isEmailVerified: boolean;
   isActive: boolean;
   familyMemberCount?: number;
+  subscriptionBalance?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +56,7 @@ export interface FamilyMember {
   cniRectoPath: string | null;
   cniVersoPath: string | null;
   identityPhotoPath: string | null;
+  joinedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +135,31 @@ export interface VerifyResetOtpResponse {
   expiresIn: string;
 }
 
+export interface AddTrustedPersonResponse {
+  trustedPerson: TrustedPerson;
+  currentCount: number;
+  maxAllowed: number;
+}
+
+export interface DeleteTrustedPersonResponse {
+  deletedId: string;
+  remainingCount: number;
+}
+
+export interface UpdateTrustedPersonResponse {
+  trustedPerson: TrustedPerson;
+  updatedFields: string[];
+}
+
+export interface UpgradeToFamilyResponse {
+  user: User;
+  members: FamilyMember[];
+  eligibilityInfo: {
+    eligibilityMonths: number;
+    message: string;
+  };
+}
+
 // ===== Auth API calls =====
 
 export const authService = {
@@ -204,6 +232,46 @@ export const authService = {
   /** PUT /api/auth/profile — multipart/form-data */
   async updateProfile(formData: FormData): Promise<ApiResponse<UpdateProfileResponse>> {
     const { data } = await api.put<ApiResponse<UpdateProfileResponse>>('/auth/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** POST /api/auth/trusted-persons — Ajouter une personne de confiance */
+  async addTrustedPerson(payload: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+    relation: string;
+    relationDetails?: string;
+  }): Promise<ApiResponse<AddTrustedPersonResponse>> {
+    const { data } = await api.post<ApiResponse<AddTrustedPersonResponse>>('/auth/trusted-persons', payload);
+    return data;
+  },
+
+  /** DELETE /api/auth/trusted-persons/:id — Supprimer une personne de confiance */
+  async deleteTrustedPerson(id: string): Promise<ApiResponse<DeleteTrustedPersonResponse>> {
+    const { data } = await api.delete<ApiResponse<DeleteTrustedPersonResponse>>(`/auth/trusted-persons/${id}`);
+    return data;
+  },
+
+  /** PUT /api/auth/trusted-persons/:id — Modifier une personne de confiance (partiel) */
+  async updateTrustedPerson(id: string, payload: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    relation?: string;
+    relationDetails?: string;
+  }): Promise<ApiResponse<UpdateTrustedPersonResponse>> {
+    const { data } = await api.put<ApiResponse<UpdateTrustedPersonResponse>>(`/auth/trusted-persons/${id}`, payload);
+    return data;
+  },
+
+  /** POST /api/auth/upgrade-to-family — Passer d'individuel à familial */
+  async upgradeToFamily(formData: FormData): Promise<ApiResponse<UpgradeToFamilyResponse>> {
+    const { data } = await api.post<ApiResponse<UpgradeToFamilyResponse>>('/auth/upgrade-to-family', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return data;

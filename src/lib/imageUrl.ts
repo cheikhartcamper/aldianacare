@@ -1,28 +1,40 @@
 /**
  * Helper to construct image URLs from API paths.
  *
- * The backend may return either:
- *  - Relative paths: "uploads/cni/uuid.jpeg" (per docs)
- *  - Absolute server paths: "/home/aldiana/app/uploads/photos/uuid.png" (actual behaviour)
+ * Backend stores relative paths in DB: "uploads/photos/uuid.png"
+ * (previously stored absolute paths — resolveRelPath handles both cases)
  *
- * In both cases we extract the "uploads/..." portion and prepend the base URL.
- * Final URL: https://aldiianacare.online/uploads/photos/uuid.png
- * (Nginx must proxy /uploads/ → Express, see nginx/aldianacare.conf)
+ * Static files are served at two routes:
+ *  1. Without /api: https://aldianacare.com/uploads/...    (primary — Nginx direct / Express existant)
+ *  2. With /api:    https://aldianacare.com/api/uploads/... (fallback — Express static, canonical)
+ *
+ * Use getImageUrls() for <img> tags (primary + onError fallback).
+ * Use getImageUrl()  for <a href> links (primary only).
  */
+
+function resolveRelPath(path: string): string {
+  const idx = path.indexOf('uploads/');
+  if (idx !== -1) return path.slice(idx);
+  return path.startsWith('/') ? path.slice(1) : path;
+}
+
+/** Primary URL — /uploads/ (Nginx direct / Express existant) */
 export function getImageUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://aldiianacare.online/api';
+  const apiUrl = (import.meta.env.VITE_API_URL || 'https://aldianacare.com/api').replace(/\/+$/, '');
   const baseUrl = apiUrl.replace(/\/api$/, '');
+  return `${baseUrl}/${resolveRelPath(path)}`;
+}
 
-  // Extract relative path starting from 'uploads/'
-  const uploadsIdx = path.indexOf('uploads/');
-  if (uploadsIdx !== -1) {
-    return `${baseUrl}/${path.slice(uploadsIdx)}`;
-  }
+/** Both URL variants — [0] = /uploads/ (primary, Nginx direct / Express existant), [1] = /api/uploads/ (fallback) */
+export function getImageUrls(path: string | null | undefined): [string, string] | null {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return [path, path];
 
-  // Fallback: strip leading slash
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  return `${baseUrl}/${cleanPath}`;
+  const apiUrl = (import.meta.env.VITE_API_URL || 'https://aldianacare.com/api').replace(/\/+$/, '');
+  const baseUrl = apiUrl.replace(/\/api$/, '');
+  const rel = resolveRelPath(path);
+  return [`${baseUrl}/${rel}`, `${apiUrl}/${rel}`];
 }

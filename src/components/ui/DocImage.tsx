@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ImageOff, ExternalLink } from 'lucide-react';
-import { getImageUrl } from '@/lib/imageUrl';
+import { getImageUrls } from '@/lib/imageUrl';
 
 interface DocImageProps {
   src: string | null | undefined;
@@ -10,9 +10,10 @@ interface DocImageProps {
 
 export function DocImage({ src, alt, className = '' }: DocImageProps) {
   const [error, setError] = useState(false);
-  const url = getImageUrl(src);
+  const triedFallback = useRef(false);
+  const urls = getImageUrls(src);
 
-  if (!url) {
+  if (!urls) {
     return (
       <div className={`w-full h-36 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 bg-gray-50 ${className}`}>
         <ImageOff size={20} className="text-gray-300" />
@@ -27,7 +28,7 @@ export function DocImage({ src, alt, className = '' }: DocImageProps) {
         <ImageOff size={18} className="text-orange-300" />
         <p className="text-xs text-orange-500 text-center font-medium">Fichier non accessible</p>
         <a
-          href={url}
+          href={urls[0]}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline"
@@ -40,12 +41,19 @@ export function DocImage({ src, alt, className = '' }: DocImageProps) {
   }
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" title="Ouvrir en plein écran">
+    <a href={urls[0]} target="_blank" rel="noopener noreferrer" title="Ouvrir en plein écran">
       <img
-        src={url}
+        src={urls[0]}
         alt={alt}
         className={`w-full h-36 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition-opacity cursor-zoom-in ${className}`}
-        onError={() => setError(true)}
+        onError={(e) => {
+          if (!triedFallback.current) {
+            triedFallback.current = true;
+            (e.target as HTMLImageElement).src = urls[1];
+          } else {
+            setError(true);
+          }
+        }}
       />
     </a>
   );

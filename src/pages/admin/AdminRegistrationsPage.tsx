@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, CheckCircle, XCircle, Eye, User, Mail, Phone, MapPin, Calendar, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, User, Mail, Phone, MapPin, Calendar, AlertCircle, Users } from 'lucide-react';
 import { Card, Badge, Button, Input, DocImage, PageLoader, BrandSpinner } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
 
@@ -17,6 +17,7 @@ export function AdminRegistrationsPage() {
   const [selectedUser, setSelectedUser] = useState<UserWithTrusted | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [rejectActionLoading, setRejectActionLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -230,9 +231,21 @@ export function AdminRegistrationsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        icon={<Eye size={14} />}
-                        onClick={() => {
-                          setSelectedUser(reg);
+                        icon={loadingDetailId === reg.id ? <BrandSpinner size={14} /> : <Eye size={14} />}
+                        disabled={loadingDetailId === reg.id}
+                        onClick={async () => {
+                          setLoadingDetailId(reg.id);
+                          try {
+                            const res = await adminService.getUserById(reg.id);
+                            if (res.success) {
+                              setSelectedUser(res.data as UserWithTrusted);
+                            } else {
+                              setSelectedUser(reg);
+                            }
+                          } catch {
+                            setSelectedUser(reg);
+                          }
+                          setLoadingDetailId(null);
                           setShowModal(true);
                         }}
                       >
@@ -366,10 +379,34 @@ export function AdminRegistrationsPage() {
                   </div>
                 </div>
 
+              {/* Family Members */}
+              {selectedUser.planType === 'family' && selectedUser.familyMembers && selectedUser.familyMembers.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2"><Users size={15} className="text-amber-500" /> Membres de la famille ({selectedUser.familyMembers.length})</h3>
+                  <div className="space-y-2">
+                    {selectedUser.familyMembers.map((fm) => (
+                      <div key={fm.id} className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{fm.firstName} {fm.lastName}</p>
+                          <p className="text-xs text-amber-700 mt-0.5">
+                            {fm.dateOfBirth ? new Date(fm.dateOfBirth).toLocaleDateString('fr-FR') : '—'}
+                            {fm.isAdult ? ' · Majeur' : ' · Mineur'}
+                          </p>
+                        </div>
+                        <div className="text-right text-xs text-gray-500">
+                          <p>{fm.phone}</p>
+                          {fm.email && <p>{fm.email}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Trusted Persons */}
               {selectedUser.trustedPersons && selectedUser.trustedPersons.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Personnes de confiance ({selectedUser.trustedPersons.length})</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2"><Users size={15} className="text-primary" /> Personnes de confiance ({selectedUser.trustedPersons.length})</h3>
                   <div className="space-y-3">
                     {selectedUser.trustedPersons.map((tp) => (
                       <div key={tp.id} className="p-3 bg-gray-50 rounded-lg">

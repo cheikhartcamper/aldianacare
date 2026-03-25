@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search, CheckCircle, XCircle, Eye, User, Phone,
-  MapPin, Calendar, Users, FileText, AlertCircle
+  MapPin, Calendar, Users, FileText, AlertCircle,
+  ChevronLeft, ChevronRight, RefreshCw, UserCheck, UserX
 } from 'lucide-react';
 import { Card, Badge, Button, Input, DocImage, PageLoader, BrandSpinner } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
+
+type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
+type PlanFilter = 'all' | 'individual' | 'family';
 
 const statusVariants: Record<string, 'success' | 'warning' | 'danger'> = {
   approved: 'success',
@@ -21,33 +25,73 @@ const statusLabels: Record<string, string> = {
 
 export function AdminUsersPage() {
   const [search, setSearch] = useState('');
-  const [planFilter, setPlanFilter] = useState<'all' | 'individual' | 'family'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [planFilter, setPlanFilter] = useState<PlanFilter>('all');
   const [users, setUsers] = useState<UserWithTrusted[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState<UserWithTrusted | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [pendingUserToReject, setPendingUserToReject] = useState<UserWithTrusted | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [statsTotal, setStatsTotal] = useState(0);
+  const [statsPending, setStatsPending] = useState(0);
+  const [statsApproved, setStatsApproved] = useState(0);
+  const [statsRejected, setStatsRejected] = useState(0);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    else setRefreshing(true);
     try {
-      const params: { limit: number; planType?: string } = { limit: 100 };
-      if (planFilter !== 'all') params.planType = planFilter;
-      const res = await adminService.getUsers(params);
-      if (res.success) {
-        setUsers(res.data.users);
-        setTotalUsers(res.data.pagination.total);
+      if (statusFilter === 'all' && planFilter === 'all') {
+        const res = await adminService.getUsers({ page, limit: 15 });
+        if (res.success) {
+          setUsers(res.data.users);
+          setTotalUsers(res.data.pagination.total);
+          setTotalPages(res.data.pagination.totalPages);
+        }
+      } else {
+        const params: { status?: string; page: number; limit: number } = { page, limit: 15 };
+        if (statusFilter !== 'all') params.status = statusFilter;
+        else params.status = 'all';
+        const res = await adminService.getRegistrations(params);
+        if (res.success) {
+          let list = res.data.registrations;
+          if (planFilter !== 'all') list = list.filter((u) => u.planType === planFilter);
+          setUsers(list);
+          setTotalUsers(res.data.pagination.total);
+          setTotalPages(res.data.pagination.totalPages);
+        }
       }
     } catch { /* ignore */ }
-    setLoading(false);
-  };
+    if (showLoader) setLoading(false);
+    else setRefreshing(false);
+  }, [statusFilter, planFilter, page]);
 
-  useEffect(() => { fetchUsers(); }, [planFilter]);
+  const fetchStats = useCallback(async () => {
+    try {
+      const [all, pending, approved, rejected] = await Promise.all([
+        adminService.getUsers({ page: 1, limit: 1 }),
+        adminService.getRegistrations({ status: 'pending', page: 1, limit: 1 }),
+        adminService.getRegistrations({ status: 'approved', page: 1, limit: 1 }),
+        adminService.getRegistrations({ status: 'rejected', page: 1, limit: 1 }),
+      ]);
+      if (all.success) setStatsTotal(all.data.pagination.total);
+      if (pending.success) setStatsPending(pending.data.pagination.total);
+      if (approved.success) setStatsApproved(approved.data.pagination.total);
+      if (rejected.success) setStatsRejected(rejected.data.pagination.total);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const handleViewUser = async (userId: string) => {
     setLoadingUserId(userId);
@@ -66,9 +110,10 @@ export function AdminUsersPage() {
     try {
       const res = await adminService.approveRegistration(userId);
       if (res.success) {
-        setSuccessMsg('Inscription approuvée ! Un email a été envoyé.');
+        setSuccessMsg('Inscription approuvée ! Email envoyé à l\'utilisateur.');
         setTimeout(() => setSuccessMsg(''), 4000);
-        await fetchUsers();
+        fetchUsers(false);
+        fetchStats();
         setShowModal(false);
         setSelectedUser(null);
       }
@@ -77,17 +122,20 @@ export function AdminUsersPage() {
   };
 
   const handleReject = async () => {
-    if (!selectedUser || rejectReason.length < 10) return;
-    setActionLoadingId(selectedUser.id);
+    const target = pendingUserToReject || selectedUser;
+    if (!target || rejectReason.length < 10) return;
+    setActionLoadingId(target.id);
     try {
-      const res = await adminService.rejectRegistration(selectedUser.id, rejectReason);
+      const res = await adminService.rejectRegistration(target.id, rejectReason);
       if (res.success) {
-        setSuccessMsg('Inscription rejetée. Un email a été envoyé.');
+        setSuccessMsg('Inscription rejetée. Email envoyé à l\'utilisateur.');
         setTimeout(() => setSuccessMsg(''), 4000);
-        await fetchUsers();
+        fetchUsers(false);
+        fetchStats();
         setShowModal(false);
         setSelectedUser(null);
         setShowRejectModal(false);
+        setPendingUserToReject(null);
         setRejectReason('');
       }
     } catch { /* ignore */ }
@@ -95,6 +143,7 @@ export function AdminUsersPage() {
   };
 
   const filtered = users.filter((u) => {
+    if (!search) return true;
     const q = search.toLowerCase();
     return (
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
@@ -103,8 +152,15 @@ export function AdminUsersPage() {
     );
   });
 
-  const pendingCount = users.filter((u) => u.registrationStatus === 'pending').length;
-  const approvedCount = users.filter((u) => u.registrationStatus === 'approved').length;
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleFilterChange = (newStatus: StatusFilter, newPlan: PlanFilter) => {
+    setStatusFilter(newStatus);
+    setPlanFilter(newPlan);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -113,8 +169,17 @@ export function AdminUsersPage() {
         className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-          <p className="text-sm text-gray-500 mt-1">{totalUsers} utilisateur{totalUsers > 1 ? 's' : ''} inscrits</p>
+          <p className="text-sm text-gray-500 mt-1">{statsTotal} utilisateur{statsTotal > 1 ? 's' : ''} au total</p>
         </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+          onClick={() => fetchUsers(false)}
+          disabled={refreshing}
+        >
+          Actualiser
+        </Button>
       </motion.div>
 
       {/* Toast success */}
@@ -127,37 +192,48 @@ export function AdminUsersPage() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card hover onClick={() => handleFilterChange('all', 'all')} className={`cursor-pointer ${statusFilter === 'all' && planFilter === 'all' ? 'ring-2 ring-primary/40' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Users size={18} className="text-primary" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{loading ? '—' : totalUsers}</p>
+              <p className="text-2xl font-bold text-gray-900">{statsTotal || '—'}</p>
             </div>
           </div>
         </Card>
-        <Card>
+        <Card hover onClick={() => handleFilterChange('pending', 'all')} className={`cursor-pointer ${statusFilter === 'pending' ? 'ring-2 ring-amber-300' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
               <AlertCircle size={18} className="text-amber-500" />
             </div>
             <div>
               <p className="text-xs text-gray-400">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{loading ? '—' : pendingCount}</p>
+              <p className="text-2xl font-bold text-amber-600">{statsPending || '—'}</p>
             </div>
           </div>
         </Card>
-        <Card>
+        <Card hover onClick={() => handleFilterChange('approved', 'all')} className={`cursor-pointer ${statusFilter === 'approved' ? 'ring-2 ring-green-300' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-              <CheckCircle size={18} className="text-green-600" />
+              <UserCheck size={18} className="text-green-600" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Approuvés</p>
-              <p className="text-2xl font-bold text-gray-900">{loading ? '—' : approvedCount}</p>
+              <p className="text-2xl font-bold text-green-700">{statsApproved || '—'}</p>
+            </div>
+          </div>
+        </Card>
+        <Card hover onClick={() => handleFilterChange('rejected', 'all')} className={`cursor-pointer ${statusFilter === 'rejected' ? 'ring-2 ring-red-300' : ''}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+              <UserX size={18} className="text-red-500" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Rejetés</p>
+              <p className="text-2xl font-bold text-red-600">{statsRejected || '—'}</p>
             </div>
           </div>
         </Card>
@@ -174,20 +250,33 @@ export function AdminUsersPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            {(['all', 'individual', 'family'] as const).map((plan) => (
-              <button
-                key={plan}
-                onClick={() => setPlanFilter(plan)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  planFilter === plan
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {plan === 'all' ? 'Tous' : plan === 'individual' ? 'Individuel' : 'Familial'}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+              {(['all', 'pending', 'approved', 'rejected'] as StatusFilter[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleFilterChange(s, planFilter)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    statusFilter === s ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {s === 'all' ? 'Tous' : s === 'pending' ? 'En attente' : s === 'approved' ? 'Approuvés' : 'Rejetés'}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+              {(['all', 'individual', 'family'] as PlanFilter[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handleFilterChange(statusFilter, p)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    planFilter === p ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {p === 'all' ? 'Tous plans' : p === 'individual' ? 'Individuel' : 'Familial'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Card>
@@ -203,7 +292,7 @@ export function AdminUsersPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Plan</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pays</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Résidence</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -220,20 +309,36 @@ export function AdminUsersPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 truncate">{u.firstName} {u.lastName}</p>
                           <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                          <p className="text-xs text-gray-400">{u.phone}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={u.planType === 'family' ? 'warning' : 'primary'} size="sm">
-                        {u.planType === 'family' ? 'Familial' : 'Individuel'}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant={u.planType === 'family' ? 'warning' : 'primary'} size="sm">
+                          {u.planType === 'family' ? 'Familial' : 'Individuel'}
+                        </Badge>
+                        {u.planType === 'family' && u.familyMemberCount && (
+                          <p className="text-[10px] text-gray-400">{u.familyMemberCount} membre{u.familyMemberCount > 1 ? 's' : ''}</p>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 capitalize">{u.residenceCountry || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 capitalize">
+                      <div>
+                        <p>{u.residenceCountry || '—'}</p>
+                        <p className="text-xs text-gray-400">→ {u.repatriationCountry || '—'}</p>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
                     <td className="px-6 py-4">
-                      <Badge variant={statusVariants[u.registrationStatus] || 'warning'} dot size="sm">
-                        {statusLabels[u.registrationStatus] || u.registrationStatus}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant={statusVariants[u.registrationStatus] || 'warning'} dot size="sm">
+                          {statusLabels[u.registrationStatus] || u.registrationStatus}
+                        </Badge>
+                        {!u.isActive && (
+                          <Badge variant="danger" size="sm">Compte inactif</Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
@@ -250,7 +355,7 @@ export function AdminUsersPage() {
                                 : <CheckCircle size={15} />}
                             </button>
                             <button
-                              onClick={() => { setSelectedUser(u); setShowRejectModal(true); }}
+                              onClick={() => { setPendingUserToReject(u); setShowRejectModal(true); }}
                               disabled={actionLoadingId === u.id}
                               title="Rejeter"
                               className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors disabled:opacity-50"
@@ -281,6 +386,45 @@ export function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Page {page} / {totalPages} — {totalUsers} utilisateur{totalUsers > 1 ? 's' : ''}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const p = Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
+                  return p <= totalPages ? (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                        p === page ? 'bg-primary text-white' : 'hover:bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : null;
+                })}
+                <button
+                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -303,13 +447,14 @@ export function AdminUsersPage() {
                   <p className="text-xs text-gray-400">{selectedUser.email}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Badge variant={statusVariants[selectedUser.registrationStatus] || 'warning'}>
+              <div className="flex items-center gap-2">
+                <Badge variant={statusVariants[selectedUser.registrationStatus] || 'warning'} dot>
                   {statusLabels[selectedUser.registrationStatus]}
                 </Badge>
+                {!selectedUser.isActive && <Badge variant="danger" size="sm">Inactif</Badge>}
                 <button
                   onClick={() => { setShowModal(false); setSelectedUser(null); }}
-                  className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600"
+                  className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 ml-2"
                 >
                   <XCircle size={20} />
                 </button>
@@ -317,7 +462,7 @@ export function AdminUsersPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Info */}
+              {/* Personal Info */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <User size={13} className="text-primary" /> Informations personnelles
@@ -325,11 +470,11 @@ export function AdminUsersPage() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {[
                     { label: 'Téléphone', value: selectedUser.phone, icon: <Phone size={13} /> },
-                    { label: 'Situation', value: selectedUser.maritalStatus?.replace('_', ' '), icon: <User size={13} /> },
+                    { label: 'Situation matrimoniale', value: selectedUser.maritalStatus?.replace(/_/g, ' '), icon: <User size={13} /> },
                     { label: 'Pays de résidence', value: selectedUser.residenceCountry, icon: <MapPin size={13} /> },
                     { label: 'Pays de rapatriement', value: selectedUser.repatriationCountry, icon: <MapPin size={13} /> },
                     { label: 'Adresse', value: selectedUser.residenceAddress, icon: <MapPin size={13} /> },
-                    { label: 'Inscription', value: new Date(selectedUser.createdAt).toLocaleDateString('fr-FR'), icon: <Calendar size={13} /> },
+                    { label: 'Date d\'inscription', value: new Date(selectedUser.createdAt).toLocaleDateString('fr-FR'), icon: <Calendar size={13} /> },
                   ].map(({ label, value, icon }) => (
                     <div key={label} className="flex items-start gap-2">
                       <span className="text-gray-400 mt-0.5">{icon}</span>
@@ -340,13 +485,18 @@ export function AdminUsersPage() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3">
+                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3 flex-wrap">
                   <Badge variant={selectedUser.planType === 'family' ? 'warning' : 'primary'}>
                     Plan {selectedUser.planType === 'family' ? 'Familial' : 'Individuel'}
                   </Badge>
-                  {selectedUser.familyMemberCount && (
-                    <span className="text-xs text-gray-500">{selectedUser.familyMemberCount} membres</span>
+                  {selectedUser.planType === 'family' && selectedUser.familyMemberCount != null && (
+                    <span className="text-xs text-gray-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      {selectedUser.familyMemberCount} membre{selectedUser.familyMemberCount > 1 ? 's' : ''} de famille
+                    </span>
                   )}
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${selectedUser.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                    {selectedUser.isActive ? 'Compte actif' : 'Compte inactif'}
+                  </span>
                 </div>
               </div>
 
@@ -370,6 +520,35 @@ export function AdminUsersPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Family Members (if family plan & API returns them) */}
+              {selectedUser.planType === 'family' && selectedUser.familyMembers && selectedUser.familyMembers.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Users size={13} className="text-amber-500" /> Membres de la famille ({selectedUser.familyMembers.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedUser.familyMembers.map((fm) => (
+                      <div key={fm.id} className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{fm.firstName} {fm.lastName}</p>
+                          <p className="text-xs text-amber-700 mt-0.5">
+                            {fm.dateOfBirth ? new Date(fm.dateOfBirth).toLocaleDateString('fr-FR') : '—'}
+                            {fm.isAdult ? ' · Majeur' : ' · Mineur'}
+                          </p>
+                          {fm.residenceCountry && (
+                            <p className="text-xs text-gray-500 mt-0.5">{fm.residenceCountry} → {fm.repatriationCountry}</p>
+                          )}
+                        </div>
+                        <div className="text-right text-xs text-gray-500">
+                          <p>{fm.phone}</p>
+                          {fm.email && <p className="mt-0.5">{fm.email}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Trusted Persons */}
               {selectedUser.trustedPersons && selectedUser.trustedPersons.length > 0 && (
@@ -418,7 +597,7 @@ export function AdminUsersPage() {
                     variant="danger"
                     fullWidth
                     icon={<XCircle size={16} />}
-                    onClick={() => setShowRejectModal(true)}
+                    onClick={() => { setPendingUserToReject(selectedUser); setShowRejectModal(true); }}
                     disabled={actionLoadingId === selectedUser.id}
                   >
                     Rejeter
@@ -430,8 +609,8 @@ export function AdminUsersPage() {
         </div>
       )}
 
-      {/* Quick Reject Modal (from table row) */}
-      {showRejectModal && (selectedUser || selectedUser) && (
+      {/* Reject Modal */}
+      {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -454,7 +633,7 @@ export function AdminUsersPage() {
               <Button
                 variant="outline"
                 fullWidth
-                onClick={() => { setShowRejectModal(false); setRejectReason(''); setSelectedUser(null); }}
+                onClick={() => { setShowRejectModal(false); setRejectReason(''); setPendingUserToReject(null); }}
                 disabled={!!actionLoadingId}
               >
                 Annuler

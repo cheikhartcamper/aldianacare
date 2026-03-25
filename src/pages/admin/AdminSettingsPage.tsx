@@ -24,6 +24,10 @@ export function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [maxTrusted, setMaxTrusted] = useState(3);
   const [allowedRelations, setAllowedRelations] = useState('');
+  const [minFamilyMembers, setMinFamilyMembers] = useState(2);
+  const [familyDiscountPercent, setFamilyDiscountPercent] = useState(15);
+  const [eligibilityMonths, setEligibilityMonths] = useState(6);
+  const [referralDiscountPercent, setReferralDiscountPercent] = useState(10);
 
   // --- Countries ---
   const [countries, setCountries] = useState<Country[]>([]);
@@ -32,6 +36,7 @@ export function AdminSettingsPage() {
   const [editingCountry, setEditingCountry] = useState<Country | null>(null);
   const [countryForm, setCountryForm] = useState({ name: '', type: 'residence' as 'residence' | 'repatriation', isActive: true });
   const [countrySaving, setCountrySaving] = useState(false);
+  const [countryError, setCountryError] = useState<string | null>(null);
   const [countryDeleting, setCountryDeleting] = useState<string | null>(null);
   const [countryTypeFilter, setCountryTypeFilter] = useState<'all' | 'residence' | 'repatriation'>('all');
 
@@ -41,6 +46,7 @@ export function AdminSettingsPage() {
   const [managerModal, setManagerModal] = useState(false);
   const [managerForm, setManagerForm] = useState({ firstName: '', lastName: '', email: '', phone: '', countryId: '' });
   const [managerSaving, setManagerSaving] = useState(false);
+  const [managerError, setManagerError] = useState<string | null>(null);
 
   // Fetch general settings
   useEffect(() => {
@@ -51,6 +57,10 @@ export function AdminSettingsPage() {
           setSettings(res.data);
           setMaxTrusted(res.data.maxTrustedPersons);
           setAllowedRelations(res.data.allowedRelations.join(', '));
+          setMinFamilyMembers(res.data.minFamilyMembers ?? 2);
+          setFamilyDiscountPercent(res.data.familyDiscountPercent ?? 15);
+          setEligibilityMonths(res.data.eligibilityMonths ?? 6);
+          setReferralDiscountPercent(res.data.referralDiscountPercent ?? 10);
         }
       } catch { /* ignore */ }
       setLoading(false);
@@ -90,6 +100,10 @@ export function AdminSettingsPage() {
       const res = await adminService.updateSettings({
         maxTrustedPersons: maxTrusted,
         allowedRelations: allowedRelations.split(',').map(s => s.trim()).filter(Boolean),
+        minFamilyMembers,
+        familyDiscountPercent,
+        eligibilityMonths,
+        referralDiscountPercent,
       });
       if (res.success) {
         setSettings(res.data);
@@ -104,18 +118,21 @@ export function AdminSettingsPage() {
   const openCreateCountry = () => {
     setEditingCountry(null);
     setCountryForm({ name: '', type: 'residence', isActive: true });
+    setCountryError(null);
     setCountryModal(true);
   };
 
   const openEditCountry = (c: Country) => {
     setEditingCountry(c);
     setCountryForm({ name: c.name, type: c.type, isActive: c.isActive });
+    setCountryError(null);
     setCountryModal(true);
   };
 
   const handleSaveCountry = async () => {
     if (!countryForm.name.trim()) return;
     setCountrySaving(true);
+    setCountryError(null);
     try {
       if (editingCountry) {
         await adminService.updateCountry(editingCountry.id, countryForm);
@@ -124,7 +141,10 @@ export function AdminSettingsPage() {
       }
       setCountryModal(false);
       fetchCountries();
-    } catch { /* ignore */ }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setCountryError(msg || 'Erreur lors de l\'enregistrement.');
+    }
     setCountrySaving(false);
   };
 
@@ -148,15 +168,24 @@ export function AdminSettingsPage() {
   const handleCreateManager = async () => {
     if (!managerForm.firstName || !managerForm.email || !managerForm.countryId) return;
     setManagerSaving(true);
+    setManagerError(null);
     try {
-      await adminService.createCountryManager(managerForm);
-      setManagerModal(false);
-      setManagerForm({ firstName: '', lastName: '', email: '', phone: '', countryId: '' });
-      fetchManagers();
-    } catch { /* ignore */ }
+      const res = await adminService.createCountryManager(managerForm);
+      if (res.success) {
+        setManagerModal(false);
+        setManagerForm({ firstName: '', lastName: '', email: '', phone: '', countryId: '' });
+        fetchManagers();
+      } else {
+        setManagerError(res.message || 'Erreur lors de la création.');
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setManagerError(msg || 'Erreur réseau. Vérifiez votre connexion.');
+    }
     setManagerSaving(false);
   };
 
+  const residenceCountries = countries.filter(c => c.type === 'residence' && c.isActive);
   const filteredCountries = countries.filter(c => countryTypeFilter === 'all' || c.type === countryTypeFilter);
   const residenceCount = countries.filter(c => c.type === 'residence').length;
   const repatriationCount = countries.filter(c => c.type === 'repatriation').length;
@@ -222,6 +251,44 @@ export function AdminSettingsPage() {
                     className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
                     placeholder="père, mère, frère, soeur, conjoint, ami..."
                   />
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">Plan familial</h4>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <Input
+                      label="Membres minimum"
+                      type="number"
+                      value={String(minFamilyMembers)}
+                      onChange={(e) => setMinFamilyMembers(Number(e.target.value))}
+                    />
+                    <Input
+                      label="Réduction familiale (%)"
+                      type="number"
+                      value={String(familyDiscountPercent)}
+                      onChange={(e) => setFamilyDiscountPercent(Number(e.target.value))}
+                    />
+                    <Input
+                      label="Mois d'éligibilité"
+                      type="number"
+                      value={String(eligibilityMonths)}
+                      onChange={(e) => setEligibilityMonths(Number(e.target.value))}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Nombre minimum de membres pour le plan familial, pourcentage de réduction, et mois avant éligibilité au rapatriement.</p>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">Parrainage</h4>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <Input
+                      label="Réduction parrainage (%)"
+                      type="number"
+                      value={String(referralDiscountPercent)}
+                      onChange={(e) => setReferralDiscountPercent(Number(e.target.value))}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Pourcentage de réduction appliqué au premier paiement d'un filleul parrainé.</p>
                 </div>
                 {settings && (
                   <p className="text-xs text-gray-400">Dernière modification : {new Date(settings.updatedAt).toLocaleString('fr-FR')}</p>
@@ -427,8 +494,14 @@ export function AdminSettingsPage() {
                     </button>
                     <span className="text-sm text-gray-700">{countryForm.isActive ? 'Pays actif' : 'Pays inactif'}</span>
                   </div>
+                  {countryError && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 rounded-xl border border-red-200">
+                      <MapPin size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-600">{countryError}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                    <Button variant="ghost" size="sm" onClick={() => setCountryModal(false)}>Annuler</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setCountryModal(false); setCountryError(null); }}>Annuler</Button>
                     <Button
                       size="sm"
                       icon={countrySaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
@@ -525,7 +598,7 @@ export function AdminSettingsPage() {
           {/* Manager Create Modal */}
           <AnimatePresence>
             {managerModal && (
-              <Modal isOpen={managerModal} onClose={() => setManagerModal(false)}>
+              <Modal isOpen={managerModal} onClose={() => { setManagerModal(false); setManagerError(null); }}>
                 <div className="space-y-5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
@@ -564,20 +637,29 @@ export function AdminSettingsPage() {
                     placeholder="+221 77 123 45 67"
                   />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pays assigné</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pays assigné <span className="text-xs text-gray-400">(résidence uniquement)</span></label>
                     <select
                       value={managerForm.countryId}
                       onChange={(e) => setManagerForm({ ...managerForm, countryId: e.target.value })}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
                       <option value="">Sélectionner un pays</option>
-                      {countries.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.type === 'residence' ? 'Résidence' : 'Rapatriement'})</option>
+                      {residenceCountries.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
+                    {residenceCountries.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1.5">Aucun pays de résidence actif. Ajoutez d&apos;abord un pays de type &quot;Résidence&quot; dans l&apos;onglet Pays.</p>
+                    )}
                   </div>
+                  {managerError && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 rounded-xl border border-red-200">
+                      <ShieldCheck size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-600">{managerError}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                    <Button variant="ghost" size="sm" onClick={() => setManagerModal(false)}>Annuler</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setManagerModal(false); setManagerError(null); }}>Annuler</Button>
                     <Button
                       size="sm"
                       icon={managerSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

@@ -286,8 +286,137 @@ Ajouter les 3 fonctions `getDeclarations`, `approveDeclaration`, `rejectDeclarat
 
 ## État actuel
 
-✅ **Frontend prêt** : `AdminDeclarationsPage.tsx` affiche un placeholder en attendant l'API
+✅ **Frontend prêt** : `AdminDeclarationsPage.tsx` — affiche l'erreur exacte avec guide de correction
 ✅ **Service prêt** : `adminService.ts` a les méthodes `getDeclarations()`, `approveDeclaration()`, `rejectDeclaration()`
-❌ **Backend manquant** : Les 3 endpoints doivent être implémentés
+❌ **Backend manquant** : Les 3 endpoints admin doivent être implémentés
 
-**Une fois les endpoints backend créés**, il suffira de retirer le placeholder et reconnecter `AdminDeclarationsPage.tsx` à l'API (le code existe déjà dans l'historique git).
+---
+
+## 🚨 Problème Country Manager — GET /api/country-manager/declarations (500)
+
+**Erreur :** Le frontend reçoit une erreur HTTP 500 sur `GET /api/country-manager/declarations`
+
+**Ce que ça signifie :** L'endpoint **existe** côté backend mais **crashe** lors de l'exécution.
+
+### Causes probables (à vérifier dans les logs du serveur)
+
+1. **Jointure manquante sur la table `declarations`**  
+   L'endpoint essaie probablement de filtrer par `assignedCountryId` du Country Manager, mais la colonne ou l'association n'est pas encore définie dans le modèle Sequelize :
+   ```javascript
+   // Vérifier que Declaration a bien une association avec User (le décédé)
+   Declaration.belongsTo(User, { as: 'deceased', foreignKey: 'userId' });
+   ```
+
+2. **`assignedCountryId` null pour ce CM**  
+   Si le Country Manager n'a pas de pays assigné (`assignedCountryId = null`), la requête SQL peut crasher :
+   ```javascript
+   // Ajouter une vérification
+   const cm = await User.findByPk(req.user.id);
+   if (!cm || !cm.assignedCountryId) {
+     return res.status(400).json({ success: false, message: "Aucun pays assigné à ce compte." });
+   }
+   ```
+
+3. **Colonne `repatriationCountry` non indexée / jointure incorrecte**  
+   Le filtre par pays essaie peut-être de joindre la table countries sur `users.repatriationCountry` (string) avec `countries.id` (UUID) — types incompatibles.
+
+### Réponse attendue correcte (200)
+
+```json
+{
+  "success": true,
+  "data": {
+    "declarations": [
+      {
+        "id": "uuid",
+        "declarationNumber": "DEC-20260312-0001",
+        "declarantFirstName": "iris",
+        "declarantLastName": "softech",
+        "declarantPhone": "+221711444422",
+        "deathDate": "2026-03-10",
+        "deathPlace": "Dakar",
+        "status": "pending",
+        "createdAt": "2026-03-12T12:18:53.276Z",
+        "deceased": {
+          "firstName": "fatou",
+          "lastName": "fall",
+          "repatriationCountry": "senegal"
+        }
+      }
+    ],
+    "pagination": {
+      "total": 1,
+      "page": 1,
+      "limit": 20,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+### Logique correcte pour country-manager/declarations
+
+```javascript
+// controller: countryManager.controller.js → getDeclarations
+const cm = await User.findByPk(req.user.id, {
+  include: [{ model: Country, as: 'assignedCountry' }]
+});
+
+if (!cm?.assignedCountryId) {
+  return res.status(400).json({
+    success: false,
+    message: "Aucun pays assigné à ce compte Country Manager."
+  });
+}
+
+const countryName = cm.assignedCountry.name; // ex: "France"
+
+const { status, page = 1, limit = 20 } = req.query;
+
+// Filtrer les déclarations dont le décédé a repatriationCountry = countryName
+const where = {};
+if (status && status !== 'all') where.status = status;
+
+const declarations = await Declaration.findAll({
+  where,
+  include: [
+    {
+      model: User,
+      as: 'deceased',
+      attributes: ['firstName', 'lastName', 'email', 'phone', 'repatriationCountry'],
+      where: { repatriationCountry: countryName } // filtre par pays du CM
+    }
+  ],
+  order: [['createdAt', 'DESC']],
+  limit: parseInt(limit),
+  offset: (parseInt(page) - 1) * parseInt(limit)
+});
+
+const total = await Declaration.count({
+  where,
+  include: [{
+    model: User,
+    as: 'deceased',
+    where: { repatriationCountry: countryName }
+  }]
+});
+
+return res.json({
+  success: true,
+  data: {
+    declarations,
+    pagination: { total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) }
+  }
+});
+```
+
+---
+
+## Résumé des priorités
+
+| Endpoint | Statut | Action requise |
+|---|---|---|
+| `GET /api/admin/declarations` | ❌ 404 Route non trouvée | Créer l'endpoint (voir section 1 ci-dessus) |
+| `PUT /api/admin/declarations/:id/approve` | ❌ Non testé | Créer l'endpoint (voir section 2) |
+| `PUT /api/admin/declarations/:id/reject` | ❌ Non testé | Créer l'endpoint (voir section 3) |
+| `GET /api/country-manager/declarations` | ⚠️ 500 crash | Corriger le controller (voir section CM ci-dessus) |

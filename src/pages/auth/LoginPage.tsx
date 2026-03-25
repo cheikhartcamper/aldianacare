@@ -39,14 +39,16 @@ export function LoginPage() {
 
   const getRedirectPath = (role: string, from?: string) => {
     const isAdminPath = from?.startsWith('/admin');
+    const isCMPath = from?.startsWith('/country-manager');
     const isUserPath = from?.startsWith('/app');
     if (role === 'admin') return (from && isAdminPath) ? from : '/admin';
+    if (role === 'country_manager') return (from && isCMPath) ? from : '/country-manager';
     return (from && isUserPath) ? from : '/app';
   };
 
   // Post-login branded loader — takes priority over everything
   if (showLoginLoader) {
-    return <PageLoader />;
+    return <PageLoader message="Connexion en cours..." />;
   }
 
   // Still determining auth state

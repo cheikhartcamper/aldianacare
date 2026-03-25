@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Search, Eye, CheckCircle, XCircle, Clock, Shield,
   MapPin, Calendar, Phone, User, ChevronLeft, ChevronRight, Filter,
-  Download, Loader2, RefreshCw
+  Download, Loader2, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, PageLoader } from '@/components/ui';
 import { adminService, type Declaration } from '@/services/admin.service';
@@ -38,10 +38,12 @@ export function AdminDeclarationsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState('');
 
   const fetchDeclarations = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     else setRefreshing(true);
+    setFetchError('');
     try {
       const params: Record<string, string | number> = { page, limit: 15 };
       if (statusFilter !== 'all') params.status = statusFilter;
@@ -49,8 +51,19 @@ export function AdminDeclarationsPage() {
       if (res.success) {
         setDeclarations(res.data.declarations);
         setPagination({ total: res.data.pagination.total, totalPages: res.data.pagination.totalPages });
+      } else {
+        setFetchError(res.message || 'Impossible de charger les déclarations.');
+        setDeclarations([]);
       }
-    } catch {
+    } catch (err: unknown) {
+      const e = err as { response?: { status?: number; data?: { message?: string } } };
+      const status = e.response?.status;
+      const msg = e.response?.data?.message || '';
+      if (status === 404 || msg.toLowerCase().includes('route non trouv')) {
+        setFetchError('Endpoint non disponible côté backend. Implémentez GET /api/admin/declarations (voir BACKEND_TODO_DECLARATIONS.md).');
+      } else {
+        setFetchError(msg || 'Erreur de connexion. Vérifiez que le backend est actif.');
+      }
       setDeclarations([]);
     } finally {
       setLoading(false);
@@ -162,6 +175,15 @@ export function AdminDeclarationsPage() {
       {/* Table */}
       {loading ? (
         <PageLoader variant="inline" size="sm" label="Chargement des déclarations..." />
+      ) : fetchError ? (
+        <Card>
+          <div className="text-center py-14">
+            <AlertTriangle size={40} className="mx-auto text-amber-300 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Impossible de charger les déclarations</h3>
+            <p className="text-sm text-red-500 max-w-sm mx-auto mb-4">{fetchError}</p>
+            <Button size="sm" variant="ghost" icon={<RefreshCw size={14} />} onClick={() => fetchDeclarations()}>Réessayer</Button>
+          </div>
+        </Card>
       ) : filteredDeclarations.length === 0 ? (
         <Card>
           <div className="text-center py-14">

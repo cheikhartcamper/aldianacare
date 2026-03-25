@@ -85,6 +85,47 @@ export interface MySubscriptionResponse {
   };
 }
 
+export interface Payment {
+  id: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  paymentReference: string | null;
+  paymentMethod: string | null;
+  paidAt: string | null;
+  paymentNumber: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  isLatePayment: boolean;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PaymentHistoryResponse {
+  payments: Payment[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  summary: {
+    totalPaid: number;
+    totalPending: number;
+    totalFailed: number;
+    totalAmountPaid: number;
+  };
+}
+
+export interface PayInstallmentResponse {
+  payment: {
+    id: string;
+    reference: string;
+    amount: number;
+    paymentNumber: number;
+  };
+  paymentUrl: string;
+}
+
 export const subscriptionService = {
   /** GET /api/subscription/plans */
   async getPlans(): Promise<ApiResponse<SubscriptionPlansResponse>> {
@@ -110,6 +151,20 @@ export const subscriptionService = {
   /** GET /api/subscription/my-subscription */
   async getMySubscription(): Promise<ApiResponse<MySubscriptionResponse>> {
     const { data } = await api.get<ApiResponse<MySubscriptionResponse>>('/subscription/my-subscription');
+    return data;
+  },
+
+  /** POST /api/subscription/pay-installment */
+  async payInstallment(): Promise<ApiResponse<PayInstallmentResponse>> {
+    const { data } = await api.post<ApiResponse<PayInstallmentResponse>>('/subscription/pay-installment');
+    return data;
+  },
+
+  /** GET /api/subscription/payment-history */
+  async getPaymentHistory(page = 1, limit = 10): Promise<ApiResponse<PaymentHistoryResponse>> {
+    const { data } = await api.get<ApiResponse<PaymentHistoryResponse>>('/subscription/payment-history', {
+      params: { page, limit },
+    });
     return data;
   },
 };

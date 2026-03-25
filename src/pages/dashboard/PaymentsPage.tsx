@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertTriangle, CalendarDays, Clock, CreditCard, Info, Loader2, Shield } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CreditCard, History, Info, Loader2, Shield, XCircle } from 'lucide-react';
 import { Button, Card, Badge } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { subscriptionService, type MySubscriptionResponse } from '@/services/subscription.service';
+import { subscriptionService, type MySubscriptionResponse, type Payment, type PaymentHistoryResponse } from '@/services/subscription.service';
 
 function formatDate(value?: string): string {
   if (!value) return '—';
@@ -13,11 +13,17 @@ function formatDate(value?: string): string {
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function formatAmount(value?: string): string {
-  if (!value) return '—';
-  const amount = Number.parseFloat(value);
+function formatAmount(value?: string | number): string {
+  if (value === undefined || value === null) return '—';
+  const amount = typeof value === 'string' ? Number.parseFloat(value) : value;
   if (Number.isNaN(amount)) return '—';
   return `${new Intl.NumberFormat('fr-FR').format(Math.round(amount))} FCFA`;
+}
+
+function getPaymentStatusConfig(status: Payment['status']): { label: string; variant: 'success' | 'warning' | 'danger' } {
+  if (status === 'completed') return { label: 'Payé', variant: 'success' };
+  if (status === 'pending') return { label: 'En attente', variant: 'warning' };
+  return { label: 'Échoué', variant: 'danger' };
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -50,6 +56,13 @@ export function PaymentsPage() {
   const [error, setError] = useState('');
   const [subscriptionData, setSubscriptionData] = useState<MySubscriptionResponse | null>(null);
 
+  const [historyData, setHistoryData] = useState<PaymentHistoryResponse | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+
+  const [installmentLoading, setInstallmentLoading] = useState(false);
+  const [installmentError, setInstallmentError] = useState('');
+
   const fetchSubscription = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
@@ -64,7 +77,7 @@ export function PaymentsPage() {
       setNoActiveSubscription(false);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === 404) {
+      if (status === 404 || status === 500) {
         setNoActiveSubscription(true);
         setSubscriptionData(null);
       } else {
@@ -76,8 +89,36 @@ export function PaymentsPage() {
     }
   };
 
+  const fetchHistory = async (page: number) => {
+    setHistoryLoading(true);
+    try {
+      const res = await subscriptionService.getPaymentHistory(page, 10);
+      if (res.success) setHistoryData(res.data);
+    } catch {
+      // silent
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handlePayInstallment = async () => {
+    setInstallmentLoading(true);
+    setInstallmentError('');
+    try {
+      const res = await subscriptionService.payInstallment();
+      if (res.success && res.data.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      }
+    } catch (err: unknown) {
+      setInstallmentError(getErrorMessage(err, 'Impossible d\'initier le paiement. Réessayez.'));
+    } finally {
+      setInstallmentLoading(false);
+    }
+  };
+
   useEffect(() => {
     void fetchSubscription(false);
+    void fetchHistory(1);
   }, []);
 
   const userSubscription = subscriptionData?.userSubscription;
@@ -279,8 +320,128 @@ export function PaymentsPage() {
               </div>
             </div>
           </Card>
+
+          {/* Pay installment */}
+          {(userSubscription?.isExpired || userSubscription?.status === 'suspended') && (
+            <Card className="border-amber-200 bg-amber-50">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">
+                      {userSubscription?.status === 'suspended' ? 'Abonnement suspendu' : 'Couverture expirée'}
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Payez votre cotisation pour réactiver votre couverture.
+                    </p>
+                    {installmentError && <p className="text-xs text-red-600 mt-1">{installmentError}</p>}
+                  </div>
+                </div>
+                <Button
+                  variant="gold"
+                  size="sm"
+                  icon={installmentLoading ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                  onClick={() => void handlePayInstallment()}
+                  disabled={installmentLoading}
+                >
+                  Payer la cotisation
+                </Button>
+              </div>
+            </Card>
+          )}
         </>
       )}
+
+      {/* Payment history */}
+      <Card padding="none">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History size={16} className="text-gray-400" />
+            <h3 className="font-semibold text-gray-900">Historique des paiements</h3>
+          </div>
+          {historyData?.summary && (
+            <span className="text-xs text-gray-400">
+              Total versé : <span className="font-semibold text-gray-700">{formatAmount(historyData.summary.totalAmountPaid)}</span>
+            </span>
+          )}
+        </div>
+
+        {historyLoading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-gray-500">
+            <Loader2 size={16} className="animate-spin" />
+            <span className="text-sm">Chargement de l'historique...</span>
+          </div>
+        ) : !historyData || historyData.payments.length === 0 ? (
+          <div className="flex items-center gap-3 p-6 text-gray-500">
+            <Info size={16} className="flex-shrink-0" />
+            <p className="text-sm">Aucun paiement enregistré pour le moment.</p>
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-gray-50">
+              {historyData.payments.map((payment) => {
+                const cfg = getPaymentStatusConfig(payment.status);
+                return (
+                  <div key={payment.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        payment.status === 'completed' ? 'bg-success/10' : payment.status === 'pending' ? 'bg-warning/10' : 'bg-danger/10'
+                      }`}>
+                        {payment.status === 'completed'
+                          ? <CheckCircle2 size={15} className="text-success" />
+                          : payment.status === 'pending'
+                          ? <Clock size={15} className="text-warning" />
+                          : <XCircle size={15} className="text-danger" />
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          Cotisation n°{payment.paymentNumber}
+                          {payment.isLatePayment && <span className="ml-2 text-xs text-amber-600">(retard)</span>}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {payment.paidAt ? formatDate(payment.paidAt) : formatDate(payment.createdAt)}
+                          {payment.periodStart && payment.periodEnd && (
+                            <> · {formatDate(payment.periodStart)} → {formatDate(payment.periodEnd)}</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-sm font-semibold text-gray-900">{formatAmount(payment.amount)}</span>
+                      <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {historyData.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                <span className="text-xs text-gray-400">
+                  Page {historyData.pagination.page} / {historyData.pagination.totalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { const p = historyPage - 1; setHistoryPage(p); void fetchHistory(p); }}
+                    disabled={historyPage <= 1 || historyLoading}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    onClick={() => { const p = historyPage + 1; setHistoryPage(p); void fetchHistory(p); }}
+                    disabled={historyPage >= historyData.pagination.totalPages || historyLoading}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
     </div>
   );
 }

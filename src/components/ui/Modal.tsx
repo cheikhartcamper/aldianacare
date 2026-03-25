@@ -28,26 +28,30 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
             onClick={onClose}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className={`bg-white rounded-2xl shadow-xl w-full ${sizes[size]} max-h-[90vh] overflow-y-auto`}
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-white rounded-2xl shadow-xl w-full ${sizes[size]} max-h-[90vh] overflow-y-auto relative pointer-events-auto`}
             >
+              {/* Close button - always visible */}
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 z-10 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Fermer"
+              >
+                <X size={18} />
+              </button>
+
               {title && (
-                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between p-6 pr-14 border-b border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-                  <button
-                    onClick={onClose}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
               )}
-              <div className="p-6">{children}</div>
+              <div className={title ? 'p-6' : 'p-6 pt-12'}>{children}</div>
             </motion.div>
           </div>
         </>

@@ -22,9 +22,12 @@ export function AdminContractsPage() {
     if (showLoader) setLoading(true);
     else setRefreshing(true);
     try {
-      const params: Record<string, string | number> = { page, limit: 15 };
-      if (planFilter !== 'all') params.planType = planFilter;
-      const res = await adminService.getRegistrations({ status: 'approved', page, limit: 15 });
+      const res = await adminService.getRegistrations({
+        status: 'approved',
+        page,
+        limit: 15,
+        ...(planFilter !== 'all' ? { planType: planFilter } : {}),
+      });
       if (res.success) {
         setUsers(res.data.registrations);
         setPagination({ total: res.data.pagination.total, totalPages: res.data.pagination.totalPages });

@@ -8,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string; registrationStatus?: string; rejectionReason?: string | null; userRole?: 'user' | 'admin' }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string; registrationStatus?: string; rejectionReason?: string | null; userRole?: 'user' | 'admin' | 'country_manager' }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -75,8 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const meRes = await authService.getMe();
           if (meRes.success) {
+            setUser(meRes.data.user);
             setTrustedPersons(meRes.data.trustedPersons || []);
             setFamilyMembers(meRes.data.familyMembers || []);
+            localStorage.setItem('aldiana_user', JSON.stringify(meRes.data.user));
           }
         } catch {
           // Non-blocking, profile already set

@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { ApiResponse, User, TrustedPerson } from './auth.service';
+import type { ApiResponse, User, TrustedPerson, FamilyMember } from './auth.service';
 
 // ===== Types =====
 
@@ -7,12 +7,17 @@ export interface AdminSettings {
   id: number;
   maxTrustedPersons: number;
   allowedRelations: string[];
+  minFamilyMembers: number;
+  familyDiscountPercent: number;
+  eligibilityMonths: number;
+  referralDiscountPercent: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface UserWithTrusted extends User {
   trustedPersons: TrustedPerson[];
+  familyMembers?: FamilyMember[];
 }
 
 export interface PaginatedUsers {
@@ -131,7 +136,14 @@ export const adminService = {
   },
 
   /** PUT /api/admin/settings */
-  async updateSettings(payload: { maxTrustedPersons?: number; allowedRelations?: string[] }): Promise<ApiResponse<AdminSettings>> {
+  async updateSettings(payload: {
+    maxTrustedPersons?: number;
+    allowedRelations?: string[];
+    minFamilyMembers?: number;
+    familyDiscountPercent?: number;
+    eligibilityMonths?: number;
+    referralDiscountPercent?: number;
+  }): Promise<ApiResponse<AdminSettings>> {
     const { data } = await api.put<ApiResponse<AdminSettings>>('/admin/settings', payload);
     return data;
   },
@@ -149,7 +161,7 @@ export const adminService = {
   },
 
   /** GET /api/admin/registrations */
-  async getRegistrations(params?: { status?: string; page?: number; limit?: number }): Promise<ApiResponse<PaginatedRegistrations>> {
+  async getRegistrations(params?: { status?: string; page?: number; limit?: number; planType?: string }): Promise<ApiResponse<PaginatedRegistrations>> {
     const { data } = await api.get<ApiResponse<PaginatedRegistrations>>('/admin/registrations', { params });
     return data;
   },

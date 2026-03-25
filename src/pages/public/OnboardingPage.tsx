@@ -73,6 +73,16 @@ interface FamilyMemberForm {
 const emptyTrusted: TrustedPersonForm = { firstName: '', lastName: '', phone: '', email: '', relation: '', relationDetails: '' };
 const emptyMember: FamilyMemberForm = { firstName: '', lastName: '', dateOfBirth: '', email: '', phone: '', password: '', confirmPassword: '', residenceCountry: '', residenceAddress: '', repatriationCountry: '' };
 
+function isAdultByDob(dob: string): boolean {
+  if (!dob) return false;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+  return age >= 18;
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
 
@@ -881,7 +891,7 @@ export function OnboardingPage() {
                           <Input label="Confirmer" type="password" placeholder="Confirmer" value={m.confirmPassword} onChange={(e) => updateMember(idx, 'confirmPassword', e.target.value)} />
                         </div>
                         {/* Show residence fields for adults */}
-                        {m.dateOfBirth && new Date().getFullYear() - new Date(m.dateOfBirth).getFullYear() >= 18 && (
+                        {isAdultByDob(m.dateOfBirth) && (
                           <>
                             {residenceCountries.length > 0 ? (
                               <div>

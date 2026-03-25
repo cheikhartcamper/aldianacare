@@ -8,9 +8,11 @@ interface PageLoaderProps {
   size?: 'sm' | 'md';
   /** Optional label shown below the spinner (inline only) */
   label?: string;
+  /** Optional contextual message shown below brand name in fullscreen variant */
+  message?: string;
 }
 
-export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageLoaderProps) {
+export function PageLoader({ variant = 'fullscreen', size = 'md', label, message }: PageLoaderProps) {
   if (variant === 'inline') {
     const ring = size === 'sm' ? 56 : 80;
     const inner = size === 'sm' ? 40 : 58;
@@ -190,6 +192,17 @@ export function PageLoader({ variant = 'fullscreen', size = 'md', label }: PageL
           <p className="text-gray-800 font-semibold tracking-tight text-lg">
             Aldiana <span style={{ color: '#0F5F43' }}>Care</span>
           </p>
+
+          {message && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-sm text-gray-400 font-medium -mt-1"
+            >
+              {message}
+            </motion.p>
+          )}
 
           {/* Gold bouncing dots */}
           <div className="flex items-center gap-1.5">

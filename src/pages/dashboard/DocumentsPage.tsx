@@ -1,13 +1,14 @@
-import { motion } from 'framer-motion';
-import { FileText, Download, Eye, Camera, CheckCircle, Clock, ImageIcon, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, Download, Eye, Camera, CheckCircle, Clock, ImageIcon, AlertTriangle, X } from 'lucide-react';
 import { Card, Badge } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
+import { getImageUrls } from '@/lib/imageUrl';
 
 export function DocumentsPage() {
   const { user } = useAuth();
-
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://aldiianacare.online/api';
-  const baseUrl = apiUrl.replace('/api', '');
+  const [preview, setPreview] = useState<{ name: string; urls: [string, string] } | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -114,18 +115,24 @@ export function DocumentsPage() {
           </div>
           <div className="divide-y divide-gray-50">
             {availableDocs.map((doc) => {
-              const fileUrl = `${baseUrl}/${doc.path}`;
+              const urls = getImageUrls(doc.path);
+              const primaryUrl = urls?.[0] || '';
               return (
                 <div key={doc.key} className="flex items-center gap-4 p-4 hover:bg-gray-50/50 transition-colors">
                   <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {doc.isImage ? (
+                    {doc.isImage && urls ? (
                       <img
-                        src={fileUrl}
+                        src={urls[0]}
                         alt={doc.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).parentElement!.querySelector('.fallback-icon')?.setAttribute('style', 'display:flex');
+                          const img = e.target as HTMLImageElement;
+                          if (img.src !== urls[1]) {
+                            img.src = urls[1];
+                          } else {
+                            img.style.display = 'none';
+                            img.parentElement!.querySelector('.fallback-icon')?.setAttribute('style', 'display:flex');
+                          }
                         }}
                       />
                     ) : (
@@ -144,17 +151,15 @@ export function DocumentsPage() {
                   </div>
                   <Badge variant="success" dot size="sm">Fourni</Badge>
                   <div className="flex items-center gap-1">
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => { setImgError(false); urls && setPreview({ name: doc.name, urls }); }}
                       className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary transition-colors"
                       title="Voir"
                     >
                       <Eye size={16} />
-                    </a>
+                    </button>
                     <a
-                      href={fileUrl}
+                      href={primaryUrl}
                       download
                       className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary transition-colors"
                       title="Télécharger"
@@ -239,6 +244,71 @@ export function DocumentsPage() {
           </div>
         </Card>
       )}
+
+      {/* Preview modal */}
+      <AnimatePresence>
+        {preview && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => setPreview(null)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+              >
+                <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">{preview.name}</h3>
+                  <button
+                    onClick={() => setPreview(null)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-4 flex flex-col items-center justify-center bg-gray-50 min-h-[300px] gap-3">
+                  {!imgError ? (
+                    <img
+                      src={preview.urls[0]}
+                      alt={preview.name}
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (img.src !== preview.urls[1]) {
+                          img.src = preview.urls[1];
+                        } else {
+                          setImgError(true);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center space-y-3">
+                      <p className="text-sm text-gray-500">Image non accessible depuis le navigateur.</p>
+                      <p className="text-xs text-gray-400">URL tentée&nbsp;:</p>
+                      <code className="block text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 break-all text-gray-700">{preview.urls[0]}</code>
+                      <a
+                        href={preview.urls[0]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        Ouvrir directement ↗
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

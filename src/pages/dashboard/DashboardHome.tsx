@@ -7,11 +7,23 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { getImageUrl } from '@/lib/imageUrl';
-
+import { getImageUrls } from '@/lib/imageUrl';
+import { useState, useCallback, useRef } from 'react';
 
 export function DashboardHome() {
   const { user, trustedPersons, familyMembers } = useAuth();
+  const avatarUrls = getImageUrls(user?.identityPhotoPath);
+  const [avatarError, setAvatarError] = useState(false);
+  const triedFallback = useRef(false);
+  const onAvatarError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (avatarUrls && !triedFallback.current) {
+      triedFallback.current = true;
+      (e.target as HTMLImageElement).src = avatarUrls[1];
+    } else {
+      setAvatarError(true);
+    }
+  }, [avatarUrls]);
+  const showAvatar = !!avatarUrls && !avatarError;
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
   const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
 
@@ -26,11 +38,12 @@ export function DashboardHome() {
           <div className="absolute bottom-0 left-1/2 w-32 h-32 bg-gold/10 rounded-full blur-2xl" />
           <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
-              {user?.identityPhotoPath ? (
+              {showAvatar ? (
                 <img
-                  src={getImageUrl(user.identityPhotoPath) || ''}
+                  src={avatarUrls![0]}
                   alt={displayName}
                   className="w-16 h-16 rounded-2xl border-2 border-gold/50 object-cover hidden sm:block"
+                  onError={onAvatarError}
                 />
               ) : (
                 <div className="w-16 h-16 rounded-2xl border-2 border-gold/50 bg-white/15 flex items-center justify-center hidden sm:block">
@@ -161,7 +174,7 @@ export function DashboardHome() {
               { label: 'Mon contrat', icon: FileText, path: '/app/contrat', color: 'text-primary bg-primary/10' },
               { label: 'Mes documents', icon: FolderOpen, path: '/app/documents', color: 'text-gold-dark bg-gold/10' },
               { label: 'Personne de confiance', icon: Heart, path: '/app/personne-confiance', color: 'text-pink-600 bg-pink-50' },
-              ...(user?.planType === 'family' ? [{ label: 'Ma famille', icon: Users, path: '/app/famille', color: 'text-primary bg-primary/10' }] : []),
+              { label: user?.planType === 'family' ? 'Ma famille' : 'Passer au familial', icon: Users, path: '/app/famille', color: 'text-primary bg-primary/10' },
               { label: 'Nos offres', icon: Shield, path: '/app/offres', color: 'text-info bg-info/10' },
             ].map((action) => (
               <Link
