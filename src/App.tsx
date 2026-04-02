@@ -49,6 +49,7 @@ const AdminDeathCasesPage = lazy(() => import('@/pages/admin/AdminDeathCasesPage
 const AdminCommissionsPage = lazy(() => import('@/pages/admin/AdminCommissionsPage').then(m => ({ default: m.AdminCommissionsPage })));
 const AdminAnalyticsPage = lazy(() => import('@/pages/admin/AdminAnalyticsPage').then(m => ({ default: m.AdminAnalyticsPage })));
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage').then(m => ({ default: m.AdminSettingsPage })));
+const AdminHealthDeclarationsPage = lazy(() => import('@/pages/admin/AdminHealthDeclarationsPage').then(m => ({ default: m.AdminHealthDeclarationsPage })));
 
 const CountryManagerDashboard = lazy(() => import('@/pages/country-manager/CountryManagerDashboard').then(m => ({ default: m.CountryManagerDashboard })));
 const CountryManagerUsersPage = lazy(() => import('@/pages/country-manager/CountryManagerUsersPage').then(m => ({ default: m.CountryManagerUsersPage })));
@@ -111,6 +112,7 @@ function App() {
             <Route path="commissions" element={<AdminCommissionsPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="parametres" element={<AdminSettingsPage />} />
+            <Route path="declarations-sante" element={<AdminHealthDeclarationsPage />} />
           </Route>
           {/* Country Manager dashboard — protected (country_manager only) */}
           <Route path="/country-manager" element={<ProtectedRoute requiredRole="country_manager"><CountryManagerLayout /></ProtectedRoute>}>

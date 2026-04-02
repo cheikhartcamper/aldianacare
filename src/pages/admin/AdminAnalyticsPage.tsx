@@ -15,8 +15,8 @@ export function AdminAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
   const [approvedUsers, setApprovedUsers] = useState(0);
-  const [, setPendingUsers] = useState(0);
-  const [, setRejectedUsers] = useState(0);
+  const [pendingUsers, setPendingUsers] = useState(0);
+  const [rejectedUsers, setRejectedUsers] = useState(0);
   const [totalDeclarations, setTotalDeclarations] = useState(0);
   const [pendingDecl, setPendingDecl] = useState(0);
   const [approvedDecl, setApprovedDecl] = useState(0);
@@ -121,7 +121,7 @@ export function AdminAnalyticsPage() {
         {[
           { label: 'Utilisateurs inscrits', value: totalUsers, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
           { label: 'Inscriptions approuvées', value: approvedUsers, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Déclarations totales', value: totalDeclarations, icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
+          { label: 'En attente / Rejetés', value: pendingUsers + rejectedUsers, icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Pays couverts', value: countries.length, icon: Globe, color: 'text-gold-dark', bg: 'bg-gold/10' },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>

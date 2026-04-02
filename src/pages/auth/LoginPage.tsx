@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, AlertTriangle, Clock, XCircle, ArrowRight, CheckCircle, KeyRound, Smartphone, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Star, ArrowLeft, AlertTriangle, Clock, XCircle, ArrowRight, CheckCircle, KeyRound, Smartphone, Shield, Globe, HeartHandshake, Zap } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Button, Input, Logo, PageLoader } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
@@ -140,36 +140,67 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-surface-secondary flex">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden items-center justify-center">
+      <div className="hidden lg:flex lg:w-[52%] bg-primary relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0">
           <img
             src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=900&h=1200&fit=crop"
             alt="Famille africaine"
-            className="w-full h-full object-cover opacity-15"
+            className="w-full h-full object-cover opacity-10"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/90 to-primary/70" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-primary/80" />
         </div>
-        <div className="absolute top-20 right-20 w-64 h-64 bg-gold/15 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 left-20 w-48 h-48 bg-gold/10 rounded-full blur-3xl" />
-        <div className="relative text-center text-white p-12 max-w-md">
-          <div className="flex flex-col items-center mb-6">
-            <Logo size="xl" variant="white" showText={false} className="justify-center" />
-            <h2 className="text-2xl font-bold text-white mt-3">Aldiana <span className="text-gold">Care</span></h2>
+        <div className="absolute top-16 right-16 w-72 h-72 bg-gold/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-16 left-16 w-56 h-56 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
+        <div className="relative text-white px-12 max-w-lg w-full">
+          <div className="flex flex-col mb-8">
+            <Logo size="xl" variant="white" showText={false} />
+            <h2 className="text-3xl font-bold text-white mt-4">Aldiana <span className="text-gold">Care</span></h2>
+            <p className="text-white/60 mt-2 text-sm leading-relaxed">
+              L'assurance rapatriement et assistance funéraire 100% digitale pour la diaspora ouest-africaine.
+            </p>
           </div>
-          <p className="text-white/70 leading-relaxed mb-8">
-            L'assurance rapatriement et assistance funéraire 100% digitale pour la diaspora ouest-africaine.
-          </p>
-          <div className="flex items-center justify-center gap-1 mb-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} size={14} className="text-gold fill-gold" />
+
+          <div className="space-y-4 mb-8">
+            {[
+              { icon: Globe, title: 'Couverture internationale', desc: 'Europe, Amérique, Maghreb, Moyen-Orient' },
+              { icon: HeartHandshake, title: 'Assistance complète', desc: 'Rapatriement, funérailles, administratif' },
+              { icon: Zap, title: '100% digital', desc: 'Souscription en ligne, déclaration en ligne' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon size={16} className="text-gold" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{title}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{desc}</p>
+                </div>
+              </div>
             ))}
           </div>
-          <p className="text-xs text-white/50">Noté 4.9/5 par +2000 familles</p>
+
+          <div className="flex items-center gap-3 pt-6 border-t border-white/10">
+            <div className="flex items-center gap-0.5">
+              {[1,2,3,4,5].map((i) => <Star key={i} size={13} className="text-gold fill-gold" />)}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-white">4.9/5 — Noté par +2 000 familles</p>
+              <p className="text-[10px] text-white/40">Depuis 2022 · Certifié ISO 27001</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Right panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 bg-gray-50/50 relative">
+        {/* Back to home — floating pill, professional SaaS style */}
+        <Link
+          to="/"
+          className="absolute top-5 left-6 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium text-gray-500 hover:text-primary hover:border-primary/40 hover:shadow-md transition-all duration-200 z-10 group"
+        >
+          <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+          Accueil
+        </Link>
         <AnimatePresence mode="wait">
           {showForgot ? (
             <motion.div
@@ -389,14 +420,6 @@ export function LoginPage() {
               <div className="lg:hidden mb-8">
                 <Logo size="md" variant="color" />
               </div>
-
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary mb-6 transition-colors"
-              >
-                <ArrowLeft size={16} />
-                Retour à l'accueil
-              </Link>
 
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Connexion</h1>
               <p className="text-sm text-gray-500 mb-6">Connectez-vous à votre espace Aldiana Care.</p>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CreditCard, History, Info, Loader2, Shield, XCircle } from 'lucide-react';
-import { Button, Card, Badge } from '@/components/ui';
+import { Button, Card, Badge, SkeletonCard, SkeletonList } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionService, type MySubscriptionResponse, type Payment, type PaymentHistoryResponse } from '@/services/subscription.service';
 
@@ -159,7 +159,10 @@ export function PaymentsPage() {
         </Button>
       </motion.div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {loading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{[0,1,2,3].map(i => <SkeletonCard key={i} />)}</div>
+      ) : null}
+      <div className={`grid sm:grid-cols-2 lg:grid-cols-4 gap-4 ${loading ? 'hidden' : ''}`}>
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -367,10 +370,7 @@ export function PaymentsPage() {
         </div>
 
         {historyLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-gray-500">
-            <Loader2 size={16} className="animate-spin" />
-            <span className="text-sm">Chargement de l'historique...</span>
-          </div>
+          <SkeletonList rows={5} />
         ) : !historyData || historyData.payments.length === 0 ? (
           <div className="flex items-center gap-3 p-6 text-gray-500">
             <Info size={16} className="flex-shrink-0" />

@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -7,6 +7,7 @@ import {
   LifeBuoy, Search, User
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
+import { useAuth } from '@/contexts/AuthContext';
 
 const mainLinks = [
   { label: 'Tableau de bord', path: '/assistance', icon: LayoutDashboard },
@@ -65,6 +66,9 @@ function SidebarContent({ location, onLinkClick }: { location: { pathname: strin
 }
 
 export function AssistanceLayout() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const handleLogout = () => { logout(); navigate('/'); };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
@@ -114,15 +118,15 @@ export function AssistanceLayout() {
           {bottomLinks.map((link) => (
             <NavLink key={link.path} link={link} isActive={location.pathname === link.path} />
           ))}
-          <Link
-            to="/connexion"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/30 hover:bg-red-500/15 hover:text-red-400 transition-all mt-1"
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/30 hover:bg-red-500/15 hover:text-red-400 transition-all mt-1 w-full"
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center">
               <LogOut size={17} strokeWidth={1.8} />
             </div>
             <span>Déconnexion</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -180,15 +184,15 @@ export function AssistanceLayout() {
               </div>
 
               <div className="p-3 border-t border-white/10">
-                <Link
-                  to="/connexion"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/30 hover:bg-red-500/15 hover:text-red-400 transition-all"
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/30 hover:bg-red-500/15 hover:text-red-400 transition-all w-full"
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                     <LogOut size={17} />
                   </div>
                   <span>Déconnexion</span>
-                </Link>
+                </button>
               </div>
             </motion.aside>
           </>
@@ -256,9 +260,9 @@ export function AssistanceLayout() {
                       <Link to="/assistance/parametres" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
                         <Settings size={14} /> Paramètres
                       </Link>
-                      <Link to="/connexion" className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                      <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full">
                         <LogOut size={14} /> Déconnexion
-                      </Link>
+                      </button>
                     </div>
                   </motion.div>
                 )}

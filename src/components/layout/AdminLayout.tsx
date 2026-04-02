@@ -1,24 +1,27 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Users, FileText, CreditCard, AlertTriangle,
-  Gift, BarChart3, Settings, LogOut, Menu, X, Bell, ChevronDown
+  LayoutDashboard, Users, ClipboardList, CreditCard, FileWarning,
+  Gift, BarChart3, Settings, LogOut, Menu, X, Bell, ChevronDown,
+  HeartPulse, Scroll, FolderOpen
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
+import { adminService } from '@/services/admin.service';
 
 const adminLinks = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, available: true },
-  { label: 'Inscriptions', path: '/admin/inscriptions', icon: FileText, available: true },
-  { label: 'Déclarations', path: '/admin/declarations', icon: AlertTriangle, available: true },
+  { label: 'Inscriptions', path: '/admin/inscriptions', icon: ClipboardList, available: true },
+  { label: 'Déclarations', path: '/admin/declarations', icon: FileWarning, available: true },
   { label: 'Utilisateurs', path: '/admin/utilisateurs', icon: Users, available: true },
   { label: 'Paramètres', path: '/admin/parametres', icon: Settings, available: true },
-  { label: 'Contrats', path: '/admin/contrats', icon: FileText, available: true },
+  { label: 'Contrats', path: '/admin/contrats', icon: Scroll, available: true },
   { label: 'Paiements', path: '/admin/paiements', icon: CreditCard, available: true },
-  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: AlertTriangle, available: true },
+  { label: 'Dossiers décès', path: '/admin/dossiers-deces', icon: FolderOpen, available: true },
   { label: 'Commissions', path: '/admin/commissions', icon: Gift, available: true },
   { label: 'Analytics', path: '/admin/analytics', icon: BarChart3, available: true },
+  { label: 'Décl. santé', path: '/admin/declarations-sante', icon: HeartPulse, available: true },
 ];
 
 const pageNames: Record<string, string> = {
@@ -32,18 +35,29 @@ const pageNames: Record<string, string> = {
   '/admin/dossiers-deces': 'Dossiers décès',
   '/admin/commissions': 'Commissions',
   '/admin/analytics': 'Analytics',
+  '/admin/declarations-sante': 'Déclarations de santé',
 };
 
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout, user } = useAuth();
+
+  const handleLogout = () => { logout(); navigate('/'); };
 
   const currentPage = pageNames[location.pathname] ?? 'Administration';
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'AD';
+
+  useEffect(() => {
+    adminService.getRegistrations({ status: 'pending', limit: 1 })
+      .then(res => { if (res.success) setPendingCount(res.data.pagination.total); })
+      .catch(() => {});
+  }, [location.pathname]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -141,6 +155,14 @@ export function AdminLayout() {
                 )}
                 <link.icon size={17} className={isActive ? 'text-white' : 'text-gray-500'} />
                 {sidebarOpen && <span>{link.label}</span>}
+                {sidebarOpen && link.path === '/admin/inscriptions' && pendingCount > 0 && (
+                  <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-amber-500 text-white rounded-full px-1">
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
+                {!sidebarOpen && link.path === '/admin/inscriptions' && pendingCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" />
+                )}
               </Link>
             );
           })}
@@ -148,7 +170,7 @@ export function AdminLayout() {
 
         <div className="p-3 border-t border-white/5">
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-red-500/10 hover:text-red-400 font-medium transition-colors"
             title={!sidebarOpen ? 'Déconnexion' : undefined}
           >
@@ -213,13 +235,18 @@ export function AdminLayout() {
                       {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />}
                       <link.icon size={17} className={isActive ? 'text-white' : 'text-gray-500'} />
                       <span>{link.label}</span>
+                      {link.path === '/admin/inscriptions' && pendingCount > 0 && (
+                        <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-amber-500 text-white rounded-full px-1">
+                          {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
               </nav>
               <div className="p-3 border-t border-white/5">
                 <button
-                  onClick={() => { setMobileOpen(false); logout(); }}
+                  onClick={() => { setMobileOpen(false); handleLogout(); }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-red-500/10 hover:text-red-400 font-medium transition-colors"
                 >
                   <LogOut size={17} />

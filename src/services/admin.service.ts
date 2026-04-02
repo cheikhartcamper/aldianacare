@@ -126,6 +126,133 @@ export interface CountryManagersResponse {
   total: number;
 }
 
+export interface HealthDeclaration {
+  id: string;
+  title: string;
+  contentText: string | null;
+  documentPath: string | null;
+  documentMimeType: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type HealthDeclarationsResponse = HealthDeclaration[];
+
+export interface AdminAnalytics {
+  users: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    individual: number;
+    family: number;
+    newThisMonth: number;
+  };
+  registrations: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  declarations: {
+    total: number;
+    pending: number;
+    in_review: number;
+    approved: number;
+    rejected: number;
+  };
+  payments: {
+    totalRevenue: number;
+    thisMonth: number;
+    unpaid: number;
+    totalPayments: number;
+  };
+  countries: {
+    total: number;
+    residence: number;
+    repatriation: number;
+  };
+  monthlyEvolution: { month: string; newUsers: number; revenue: number }[];
+}
+
+export interface AdminPayment {
+  id: string;
+  userId: string;
+  userSubscriptionId: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  paymentReference: string | null;
+  paymentMethod: string | null;
+  paidAt: string | null;
+  paymentNumber: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  isLatePayment: boolean;
+  notes: string | null;
+  createdAt: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    planType: string;
+  };
+}
+
+export interface AdminPaymentsResponse {
+  payments: AdminPayment[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  summary: {
+    totalRevenue: number;
+    thisMonth: number;
+    pending: number;
+    failed: number;
+  };
+}
+
+export interface AdminReferral {
+  id: string;
+  referrerId: string;
+  referredId: string;
+  code: string;
+  discountPercent: number;
+  commissionAmount: number;
+  commissionPaid: boolean;
+  commissionPaidAt: string | null;
+  createdAt: string;
+  referrer?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  referred?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface AdminReferralsResponse {
+  referrals: AdminReferral[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  summary: {
+    totalReferrals: number;
+    totalCommissionsDue: number;
+    totalCommissionsPaid: number;
+    activeSponsor: number;
+  };
+}
+
 // ===== Admin API calls =====
 
 export const adminService = {
@@ -239,6 +366,72 @@ export const adminService = {
   /** GET /api/admin/country-managers */
   async getCountryManagers(params?: { countryId?: string; active?: string }): Promise<ApiResponse<CountryManagersResponse>> {
     const { data } = await api.get<ApiResponse<CountryManagersResponse>>('/admin/country-managers', { params });
+    return data;
+  },
+
+  // ===== Health Declarations =====
+
+  /** GET /api/admin/health-declarations */
+  async getHealthDeclarations(): Promise<ApiResponse<HealthDeclaration[]>> {
+    const { data } = await api.get<ApiResponse<HealthDeclaration[]>>('/admin/health-declarations');
+    return data;
+  },
+
+  /** POST /api/admin/health-declarations */
+  async createHealthDeclaration(formData: FormData): Promise<ApiResponse<HealthDeclaration>> {
+    const { data } = await api.post<ApiResponse<HealthDeclaration>>('/admin/health-declarations', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** PUT /api/admin/health-declarations/:id */
+  async updateHealthDeclaration(id: string, formData: FormData): Promise<ApiResponse<HealthDeclaration>> {
+    const { data } = await api.put<ApiResponse<HealthDeclaration>>(`/admin/health-declarations/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  /** DELETE /api/admin/health-declarations/:id */
+  async deleteHealthDeclaration(id: string): Promise<ApiResponse<null>> {
+    const { data } = await api.delete<ApiResponse<null>>(`/admin/health-declarations/${id}`);
+    return data;
+  },
+
+  /** PUT /api/admin/health-declarations/:id/activate */
+  async activateHealthDeclaration(id: string): Promise<ApiResponse<HealthDeclaration>> {
+    const { data } = await api.put<ApiResponse<HealthDeclaration>>(`/admin/health-declarations/${id}/activate`);
+    return data;
+  },
+
+  // ===== Analytics =====
+
+  /** GET /api/admin/analytics */
+  async getAnalytics(): Promise<ApiResponse<AdminAnalytics>> {
+    const { data } = await api.get<ApiResponse<AdminAnalytics>>('/admin/analytics');
+    return data;
+  },
+
+  // ===== Payments (admin supervision) =====
+
+  /** GET /api/admin/payments */
+  async getPayments(params?: { status?: string; page?: number; limit?: number; userId?: string }): Promise<ApiResponse<AdminPaymentsResponse>> {
+    const { data } = await api.get<ApiResponse<AdminPaymentsResponse>>('/admin/payments', { params });
+    return data;
+  },
+
+  // ===== Referrals / Commissions =====
+
+  /** GET /api/admin/referrals */
+  async getReferrals(params?: { commissionPaid?: boolean; page?: number; limit?: number }): Promise<ApiResponse<AdminReferralsResponse>> {
+    const { data } = await api.get<ApiResponse<AdminReferralsResponse>>('/admin/referrals', { params });
+    return data;
+  },
+
+  /** PUT /api/admin/referrals/:id/pay-commission */
+  async payCommission(id: string): Promise<ApiResponse<AdminReferral>> {
+    const { data } = await api.put<ApiResponse<AdminReferral>>(`/admin/referrals/${id}/pay-commission`);
     return data;
   },
 };

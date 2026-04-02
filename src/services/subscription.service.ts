@@ -65,6 +65,7 @@ export interface SubscribeResponse {
 export interface MySubscriptionResponse {
   userSubscription: {
     id: string;
+    subscriptionNumber: string | null;
     status: string;
     paymentStatus: string;
     paymentReference: string;
@@ -72,6 +73,8 @@ export interface MySubscriptionResponse {
     memberCount: number;
     startDate: string;
     endDate: string;
+    effectDate: string | null;
+    expiryDate: string | null;
     paymentMethod: string;
     paymentDate: string;
     daysRemaining: number;
@@ -165,6 +168,30 @@ export const subscriptionService = {
     const { data } = await api.get<ApiResponse<PaymentHistoryResponse>>('/subscription/payment-history', {
       params: { page, limit },
     });
+    return data;
+  },
+
+  /** GET /api/subscription/attestation — télécharger l'attestation PDF */
+  async downloadAttestation(): Promise<Blob> {
+    const { data } = await api.get('/subscription/attestation', { responseType: 'blob' });
+    return data;
+  },
+
+  /** GET /api/subscription/payments/:id/receipt — télécharger un reçu PDF */
+  async downloadReceipt(paymentId: string): Promise<Blob> {
+    const { data } = await api.get(`/subscription/payments/${paymentId}/receipt`, { responseType: 'blob' });
+    return data;
+  },
+
+  /** GET /api/subscription/contribution-calls — liste des appels de cotisation */
+  async getContributionCalls(): Promise<ApiResponse<{ calls: { id: string; amount: number; dueDate: string; periodLabel: string; documentUrl: string | null }[] }>> {
+    const { data } = await api.get('/subscription/contribution-calls');
+    return data;
+  },
+
+  /** GET /api/subscription/contribution-calls/:id/download — télécharger un appel de cotisation PDF */
+  async downloadContributionCall(callId: string): Promise<Blob> {
+    const { data } = await api.get(`/subscription/contribution-calls/${callId}/download`, { responseType: 'blob' });
     return data;
   },
 };

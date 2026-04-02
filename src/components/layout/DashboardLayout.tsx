@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,6 +9,21 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge, Logo } from '@/components/ui';
 import { getImageUrls } from '@/lib/imageUrl';
+import { notificationService } from '@/services/notification.service';
+
+const pageNames: Record<string, string> = {
+  '/app': 'Tableau de bord',
+  '/app/contrat': 'Mon contrat',
+  '/app/offres': 'Nos offres',
+  '/app/paiements': 'Paiements',
+  '/app/documents': 'Documents',
+  '/app/personne-confiance': 'Personne de confiance',
+  '/app/famille': 'Ma famille',
+  '/app/parrainage': 'Parrainage',
+  '/app/support': 'Support',
+  '/app/parametres': 'Paramètres',
+  '/app/notifications': 'Notifications',
+};
 
 const mainLinks = [
   { label: 'Tableau de bord', path: '/app', icon: LayoutDashboard },
@@ -94,7 +109,10 @@ export function DashboardLayout() {
   const triedFallback = useRef(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  const handleLogout = () => { logout(); navigate('/'); };
   const avatarUrls = getImageUrls(user?.identityPhotoPath);
 
   const onAvatarError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -110,6 +128,10 @@ export function DashboardLayout() {
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'Utilisateur';
   const shortName = user ? `${user.firstName} ${user.lastName.charAt(0)}.` : '';
   const planLabel = user?.planType === 'family' ? 'Familial' : 'Individuel';
+  const currentPage = pageNames[location.pathname] ?? 'Mon espace';
+  const statusDot = user?.registrationStatus === 'approved' ? 'bg-emerald-400' : user?.registrationStatus === 'rejected' ? 'bg-red-400' : 'bg-amber-400';
+  const statusLabel = user?.registrationStatus === 'approved' ? 'Actif' : user?.registrationStatus === 'rejected' ? 'Rejeté' : 'En attente';
+  const [unreadNotif, setUnreadNotif] = useState(0);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -128,6 +150,13 @@ export function DashboardLayout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Fetch unread notification count
+  useEffect(() => {
+    notificationService.getNotifications({ limit: 1 })
+      .then(res => { if (res.success) setUnreadNotif(res.data.unreadCount); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-surface-secondary flex">
       {/* Desktop Sidebar */}
@@ -140,16 +169,19 @@ export function DashboardLayout() {
 
         <div className="mx-3 mt-4 mb-2 p-3 rounded-xl bg-white/8 border border-white/10">
           <div className="flex items-center gap-3">
-            {showAvatar ? (
-              <img src={avatarUrls![0]} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/20 flex-shrink-0" onError={onAvatarError} />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
-                <User size={16} className="text-white" />
-              </div>
-            )}
+            <div className="relative flex-shrink-0">
+              {showAvatar ? (
+                <img src={avatarUrls![0]} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/20" onError={onAvatarError} />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                  <User size={16} className="text-white" />
+                </div>
+              )}
+              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a4f37] ${statusDot}`} />
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-white truncate">{displayName}</p>
-              <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
+              <p className="text-[11px] text-white/40 font-medium">{planLabel} · {statusLabel}</p>
             </div>
           </div>
         </div>
@@ -173,7 +205,7 @@ export function DashboardLayout() {
             <span>Paramètres</span>
           </Link>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all duration-200"
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -214,16 +246,19 @@ export function DashboardLayout() {
 
               <div className="mx-3 mt-4 mb-2 p-3 rounded-xl bg-white/8 border border-white/10">
                 <div className="flex items-center gap-3">
-                  {showAvatar ? (
-                    <img src={avatarUrls![0]} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/20" onError={onAvatarError} />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-                      <User size={16} className="text-white" />
-                    </div>
-                  )}
+                  <div className="relative flex-shrink-0">
+                    {showAvatar ? (
+                      <img src={avatarUrls![0]} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/20" onError={onAvatarError} />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                        <User size={16} className="text-white" />
+                      </div>
+                    )}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0a4f37] ${statusDot}`} />
+                  </div>
                   <div>
                     <p className="text-[13px] font-semibold text-white">{displayName}</p>
-                    <p className="text-[11px] text-white/40 font-medium">{planLabel}</p>
+                    <p className="text-[11px] text-white/40 font-medium">{planLabel} · {statusLabel}</p>
                   </div>
                 </div>
               </div>
@@ -234,7 +269,7 @@ export function DashboardLayout() {
 
               <div className="p-2 border-t border-white/10">
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/35 hover:bg-red-500/15 hover:text-red-300 transition-all"
                 >
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -256,9 +291,9 @@ export function DashboardLayout() {
             <button className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" onClick={() => setMobileOpen(true)}>
               <Menu size={20} />
             </button>
-            <p className="text-sm text-gray-500 hidden sm:block">
-              Bienvenue, <span className="text-gray-900 font-semibold">{displayName}</span>
-            </p>
+            <div className="hidden sm:block">
+              <h2 className="text-sm font-semibold text-gray-900">{currentPage}</h2>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
@@ -267,6 +302,11 @@ export function DashboardLayout() {
               className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <Bell size={18} />
+              {unreadNotif > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] flex items-center justify-center text-[9px] font-bold bg-red-500 text-white rounded-full px-0.5 leading-none">
+                  {unreadNotif > 9 ? '9+' : unreadNotif}
+                </span>
+              )}
             </Link>
 
             <div className="relative ml-1" ref={profileRef}>
@@ -326,7 +366,7 @@ export function DashboardLayout() {
                       </Link>
                       <div className="mx-3 my-1 border-t border-gray-100" />
                       <button
-                        onClick={() => { setProfileOpen(false); logout(); }}
+                        onClick={() => { setProfileOpen(false); handleLogout(); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <LogOut size={14} className="text-red-400" /> Déconnexion

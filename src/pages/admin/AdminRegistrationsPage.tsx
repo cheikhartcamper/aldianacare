@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, CheckCircle, XCircle, Eye, User, Mail, Phone, MapPin, Calendar, AlertCircle, Users } from 'lucide-react';
-import { Card, Badge, Button, Input, DocImage, PageLoader, BrandSpinner } from '@/components/ui';
+import { Card, Badge, Button, Input, DocImage, BrandSpinner, SkeletonTable } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
 
 type StatusFilter = 'pending' | 'approved' | 'rejected' | 'all';
@@ -14,6 +14,9 @@ export function AdminRegistrationsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [countPending, setCountPending] = useState(0);
+  const [countApproved, setCountApproved] = useState(0);
+  const [countRejected, setCountRejected] = useState(0);
   const [selectedUser, setSelectedUser] = useState<UserWithTrusted | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -22,6 +25,19 @@ export function AdminRegistrationsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [userToReject, setUserToReject] = useState<UserWithTrusted | null>(null);
+
+  const fetchCounts = async () => {
+    try {
+      const [p, a, r] = await Promise.all([
+        adminService.getRegistrations({ status: 'pending', limit: 1 }),
+        adminService.getRegistrations({ status: 'approved', limit: 1 }),
+        adminService.getRegistrations({ status: 'rejected', limit: 1 }),
+      ]);
+      if (p.success) setCountPending(p.data.pagination.total);
+      if (a.success) setCountApproved(a.data.pagination.total);
+      if (r.success) setCountRejected(r.data.pagination.total);
+    } catch { /* ignore */ }
+  };
 
   const fetchRegistrations = async () => {
     setLoading(true);
@@ -32,15 +48,12 @@ export function AdminRegistrationsPage() {
         setTotal(res.data.pagination.total);
         setTotalPages(res.data.pagination.totalPages);
       }
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-    }
+    } catch { /* ignore */ }
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchRegistrations();
-  }, [statusFilter, page]);
+  useEffect(() => { fetchCounts(); }, []);
+  useEffect(() => { fetchRegistrations(); }, [statusFilter, page]);
 
   const handleApprove = async (userId: string) => {
     setActionLoadingId(userId);
@@ -126,36 +139,39 @@ export function AdminRegistrationsPage() {
 
       {/* Stats */}
       <div className="grid sm:grid-cols-3 gap-4">
-        <Card>
+        <Card hover onClick={() => { setStatusFilter('pending'); setPage(1); }}
+          className={`cursor-pointer transition-all ${statusFilter === 'pending' ? 'ring-2 ring-amber-300' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
               <AlertCircle size={20} className="text-amber-600" />
             </div>
             <div>
               <p className="text-xs text-gray-400">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{statusFilter === 'pending' ? total : '—'}</p>
+              <p className="text-2xl font-bold text-amber-600">{countPending}</p>
             </div>
           </div>
         </Card>
-        <Card>
+        <Card hover onClick={() => { setStatusFilter('approved'); setPage(1); }}
+          className={`cursor-pointer transition-all ${statusFilter === 'approved' ? 'ring-2 ring-green-300' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
               <CheckCircle size={20} className="text-green-600" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Approuvées</p>
-              <p className="text-2xl font-bold text-gray-900">{statusFilter === 'approved' ? total : '—'}</p>
+              <p className="text-2xl font-bold text-green-700">{countApproved}</p>
             </div>
           </div>
         </Card>
-        <Card>
+        <Card hover onClick={() => { setStatusFilter('rejected'); setPage(1); }}
+          className={`cursor-pointer transition-all ${statusFilter === 'rejected' ? 'ring-2 ring-red-300' : ''}`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
               <XCircle size={20} className="text-red-600" />
             </div>
             <div>
               <p className="text-xs text-gray-400">Rejetées</p>
-              <p className="text-2xl font-bold text-gray-900">{statusFilter === 'rejected' ? total : '—'}</p>
+              <p className="text-2xl font-bold text-red-600">{countRejected}</p>
             </div>
           </div>
         </Card>
@@ -177,11 +193,7 @@ export function AdminRegistrationsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={6}>
-                    <PageLoader variant="inline" size="sm" label="Chargement des inscriptions..." />
-                  </td>
-                </tr>
+                <SkeletonTable rows={7} cols={6} />
               ) : filteredRegistrations.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">

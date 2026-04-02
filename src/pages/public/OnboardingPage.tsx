@@ -8,44 +8,26 @@ import {
 } from 'lucide-react';
 import { Button, Card, Input } from '@/components/ui';
 import { Logo } from '@/components/ui';
-import { authService, type ScanCniResponse } from '@/services/auth.service';
+import { authService, type ScanCniResponse, type ActiveHealthDeclaration } from '@/services/auth.service';
 import { adminService } from '@/services/admin.service';
 import { referralService } from '@/services/referral.service';
+import { subscriptionService } from '@/services/subscription.service';
+import type { SubscriptionPlansResponse } from '@/services/subscription.service';
 
-const plans = [
-  {
-    id: 'individuelle',
-    apiType: 'individual' as const,
-    name: 'Individuelle',
-    price: '15',
-    priceAnnual: '140',
-    period: '/mois',
-    desc: 'Adulte en bonne santé',
-    features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe & Afrique', 'Assistance funéraire'],
-    popular: false,
-  },
-  {
-    id: 'pathologie',
-    apiType: 'individual' as const,
-    name: 'Pathologie',
-    price: '30',
-    priceAnnual: '280',
-    period: '/mois',
-    desc: 'Maladies chroniques',
-    features: ['Tout Individuelle +', 'Couverture pathologies', 'Suivi médical', 'Assistance spécialisée'],
-    popular: false,
-  },
-  {
-    id: 'family',
-    apiType: 'family' as const,
-    name: 'Aldiana Family',
-    price: '50',
-    priceAnnual: '450',
-    period: '/mois',
-    desc: 'Père, mère + 3 enfants max (jusqu\'à 5 pers.)',
-    features: ['Tout Individuelle +', 'Jusqu\'à 5 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
-    popular: true,
-  },
+const INDIVIDUAL_FEATURES = [
+  'Rapatriement du corps',
+  'Assistance administrative',
+  'Support téléphonique 24/7',
+  'Couverture internationale',
+  'Assistance funéraire',
+];
+const FAMILY_FEATURES = [
+  'Tout Individuel inclus',
+  "Jusqu'à 5 personnes couvertes",
+  "Billet d'avion famille",
+  'Capital décès famille',
+  'Gestionnaire dédié',
+  'Support prioritaire 24/7',
 ];
 
 interface TrustedPersonForm {
@@ -88,7 +70,10 @@ export function OnboardingPage() {
 
   // Step management
   const [step, setStep] = useState(1);
-  const [selectedPlan, setSelectedPlan] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<'individual' | 'family' | ''>('');
+  const [selectedDuration, setSelectedDuration] = useState<'monthly' | 'yearly'>('monthly');
+  const [apiPlans, setApiPlans] = useState<SubscriptionPlansResponse['plans'] | null>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -140,10 +125,40 @@ export function OnboardingPage() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMemberForm[]>([{ ...emptyMember }]);
   const [memberCniFiles, setMemberCniFiles] = useState<Record<string, File>>({});
 
+  // Health declaration
+  const [healthDeclaration, setHealthDeclaration] = useState<ActiveHealthDeclaration | null>(null);
+  const [healthAccepted, setHealthAccepted] = useState(false);
+
+  // Computed step values (derived from state — placed before useEffects)
+  const isFamily = selectedPlan === 'family';
+  const currentApiPlan = selectedPlan ? apiPlans?.[selectedPlan]?.[selectedDuration] : undefined;
+  const planDisplayName = selectedPlan === 'individual' ? 'Individuel' : selectedPlan === 'family' ? 'Familial' : '';
+  const planPriceLabel = currentApiPlan ? `${currentApiPlan.basePrice.toLocaleString('fr-FR')} FCFA/${selectedDuration === 'monthly' ? 'mois' : 'an'}` : '—';
+  const reviewStep = isFamily ? 7 : 6;
+  const confirmStep = isFamily ? 8 : 7;
+
   // Refs
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cniRectoRef = useRef<HTMLInputElement>(null);
   const cniVersoRef = useRef<HTMLInputElement>(null);
+
+  // Fetch subscription plans on mount
+  useEffect(() => {
+    let isMounted = true;
+    subscriptionService.getPlans()
+      .then(res => { if (isMounted && res.success) setApiPlans(res.data.plans); })
+      .catch(() => {})
+      .finally(() => { if (isMounted) setPlansLoading(false); });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Fetch active health declaration when reaching review step
+  useEffect(() => {
+    if (step !== reviewStep) return;
+    authService.getActiveHealthDeclaration()
+      .then(res => { if (res.success) setHealthDeclaration(res.data); })
+      .catch(() => {});
+  }, [step, reviewStep]);
 
   // Load public countries for registration form
   useEffect(() => {
@@ -191,7 +206,6 @@ export function OnboardingPage() {
   };
 
   // Determine steps based on plan
-  const isFamily = selectedPlan === 'family';
   const stepLabels = isFamily
     ? ['Formule', 'Téléphone', 'Informations', 'Documents', 'Personne de confiance', 'Famille', 'Récapitulatif', 'Confirmation']
     : ['Formule', 'Téléphone', 'Informations', 'Documents', 'Personne de confiance', 'Récapitulatif', 'Confirmation'];
@@ -297,6 +311,7 @@ export function OnboardingPage() {
       formData.append('repatriationCountry', repatriationCountry);
       formData.append('phoneVerificationToken', phoneVerificationToken);
       formData.append('trustedPersons', JSON.stringify(trustedPersons));
+      formData.append('healthDeclarationAccepted', 'true');
       if (referralCode.trim()) formData.append('referralCode', referralCode.trim());
 
       if (photoFile) formData.append('identityPhoto', photoFile);
@@ -324,10 +339,6 @@ export function OnboardingPage() {
     }
     setIsSubmitting(false);
   };
-
-  // Determine the review step number and confirmation step number
-  const reviewStep = isFamily ? 7 : 6;
-  const confirmStep = isFamily ? 8 : 7;
 
   return (
     <div className="min-h-screen bg-surface-secondary">
@@ -410,61 +421,147 @@ export function OnboardingPage() {
                   <p className="text-sm text-gray-500">Sélectionnez la couverture qui vous convient</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  {plans.map((plan) => (
-                    <Card
-                      key={plan.id}
-                      hover
-                      className={`cursor-pointer transition-all ${
-                        selectedPlan === plan.id
-                          ? 'ring-2 ring-primary border-primary shadow-lg'
-                          : ''
-                      } ${plan.popular ? 'relative' : ''}`}
-                      onClick={() => setSelectedPlan(plan.id)}
+                {/* Duration toggle */}
+                <div className="flex justify-center mb-6">
+                  <div className="flex bg-gray-100 rounded-full p-1 gap-1">
+                    <button
+                      onClick={() => setSelectedDuration('monthly')}
+                      className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        selectedDuration === 'monthly' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                      }`}
                     >
-                      {plan.popular && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                          <span className="bg-gold text-gray-900 text-[10px] font-bold px-3 py-1 rounded-full">
-                            Plus populaire
-                          </span>
-                        </div>
+                      Mensuel
+                    </button>
+                    <button
+                      onClick={() => setSelectedDuration('yearly')}
+                      className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                        selectedDuration === 'yearly' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Annuel
+                      {(apiPlans?.individual?.yearly?.yearlyDiscountPercent ?? 0) > 0 && (
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                          -{apiPlans!.individual!.yearly!.yearlyDiscountPercent}%
+                        </span>
                       )}
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-                          <p className="text-xs text-gray-400 mt-0.5">{plan.desc}</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                          selectedPlan === plan.id
-                            ? 'border-primary bg-primary'
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedPlan === plan.id && <Check size={14} className="text-white" />}
-                        </div>
-                      </div>
-                      <div className="mb-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                          <span className="text-sm font-semibold text-gray-500">€</span>
-                          <span className="text-gray-400 text-xs">{plan.period}</span>
-                        </div>
-                        {plan.priceAnnual && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            {plan.priceAnnual}€ /an
-                          </p>
-                        )}
-                      </div>
-                      <ul className="space-y-2">
-                        {plan.features.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                            <CheckCircle size={14} className="text-primary flex-shrink-0 mt-0.5" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                    </Card>
-                  ))}
+                    </button>
+                  </div>
                 </div>
+
+                {plansLoading ? (
+                  <div className="flex justify-center py-16">
+                    <Loader2 size={28} className="animate-spin text-primary/40" />
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Individuel */}
+                    {(() => {
+                      const plan = apiPlans?.individual?.[selectedDuration];
+                      return (
+                        <Card
+                          hover
+                          className={`cursor-pointer transition-all ${
+                            selectedPlan === 'individual' ? 'ring-2 ring-primary border-primary shadow-lg' : ''
+                          }`}
+                          onClick={() => setSelectedPlan('individual')}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">{plan?.name || 'Individuel'}</h3>
+                              <p className="text-xs text-gray-400 mt-0.5">{plan?.description || 'Pour un adulte en bonne santé'}</p>
+                            </div>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              selectedPlan === 'individual' ? 'border-primary bg-primary' : 'border-gray-300'
+                            }`}>
+                              {selectedPlan === 'individual' && <Check size={14} className="text-white" />}
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            {plan?.basePrice ? (
+                              <>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-3xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
+                                  <span className="text-sm font-semibold text-gray-500">FCFA</span>
+                                  <span className="text-gray-400 text-xs">/{selectedDuration === 'monthly' ? 'mois' : 'an'}</span>
+                                </div>
+                                {selectedDuration === 'monthly' && apiPlans?.individual?.yearly?.basePrice && (
+                                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                    {apiPlans.individual.yearly.basePrice.toLocaleString('fr-FR')} FCFA /an
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-gray-400 italic">Prix non disponible</p>
+                            )}
+                          </div>
+                          <ul className="space-y-2">
+                            {INDIVIDUAL_FEATURES.map((f) => (
+                              <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                                <CheckCircle size={14} className="text-primary flex-shrink-0 mt-0.5" />
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      );
+                    })()}
+
+                    {/* Familial */}
+                    {(() => {
+                      const plan = apiPlans?.family?.[selectedDuration];
+                      return (
+                        <Card
+                          hover
+                          className={`cursor-pointer transition-all relative ${
+                            selectedPlan === 'family' ? 'ring-2 ring-primary border-primary shadow-lg' : ''
+                          }`}
+                          onClick={() => setSelectedPlan('family')}
+                        >
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                            <span className="bg-gold text-gray-900 text-[10px] font-bold px-3 py-1 rounded-full">Plus populaire</span>
+                          </div>
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">{plan?.name || 'Familial'}</h3>
+                              <p className="text-xs text-gray-400 mt-0.5">{plan?.description || "Père, mère + enfants (jusqu'à 5 pers.)"}</p>
+                            </div>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                              selectedPlan === 'family' ? 'border-primary bg-primary' : 'border-gray-300'
+                            }`}>
+                              {selectedPlan === 'family' && <Check size={14} className="text-white" />}
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            {plan?.basePrice ? (
+                              <>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-3xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
+                                  <span className="text-sm font-semibold text-gray-500">FCFA</span>
+                                  <span className="text-gray-400 text-xs">/{selectedDuration === 'monthly' ? 'mois' : 'an'}</span>
+                                </div>
+                                {selectedDuration === 'monthly' && apiPlans?.family?.yearly?.basePrice && (
+                                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                    {apiPlans.family.yearly.basePrice.toLocaleString('fr-FR')} FCFA /an
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-gray-400 italic">Prix non disponible</p>
+                            )}
+                          </div>
+                          <ul className="space-y-2">
+                            {FAMILY_FEATURES.map((f) => (
+                              <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                                <CheckCircle size={14} className="text-primary flex-shrink-0 mt-0.5" />
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 
@@ -973,7 +1070,7 @@ export function OnboardingPage() {
                 <div className="space-y-4">
                   <Card>
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">Formule</h4>
-                    <p className="text-sm text-gray-600">{plans.find(p => p.id === selectedPlan)?.name} — {plans.find(p => p.id === selectedPlan)?.price}€{plans.find(p => p.id === selectedPlan)?.period}</p>
+                    <p className="text-sm text-gray-600">{planDisplayName} — {selectedDuration === 'monthly' ? 'Mensuel' : 'Annuel'} — {planPriceLabel}</p>
                   </Card>
                   <Card>
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">Informations personnelles</h4>
@@ -1009,10 +1106,45 @@ export function OnboardingPage() {
                   )}
                 </div>
 
+                {/* Déclaration sur l'honneur santé */}
+                <div className="mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50">
+                  <div className="flex items-start gap-3">
+                    <FileText size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-900 mb-1">
+                        {healthDeclaration?.title ?? 'Déclaration sur l\'honneur (santé)'}
+                      </p>
+                      {healthDeclaration?.contentText ? (
+                        <p className="text-xs text-amber-800 leading-relaxed max-h-28 overflow-y-auto whitespace-pre-wrap">
+                          {healthDeclaration.contentText}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-700">
+                          Je déclare sur l'honneur être en bonne santé et ne pas souffrir de maladies graves pouvant affecter la durée de vie au moment de cette souscription.
+                        </p>
+                      )}
+                      <label className="flex items-start gap-2 mt-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={healthAccepted}
+                          onChange={e => setHealthAccepted(e.target.checked)}
+                          className="mt-0.5 accent-primary"
+                        />
+                        <span className="text-xs text-amber-900 font-medium">
+                          J'ai lu et j'accepte la déclaration sur l'honneur ci-dessus. <span className="text-red-500">*</span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mt-6">
-                  <Button variant="gold" fullWidth size="lg" onClick={handleSubmit} disabled={isSubmitting}>
+                  <Button variant="gold" fullWidth size="lg" onClick={handleSubmit} disabled={isSubmitting || !healthAccepted}>
                     {isSubmitting ? <><Loader2 size={16} className="animate-spin mr-2" /> Envoi en cours...</> : 'Soumettre mon inscription'}
                   </Button>
+                  {!healthAccepted && (
+                    <p className="text-xs text-center text-gray-400 mt-2">Vous devez accepter la déclaration sur l'honneur pour continuer.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1042,11 +1174,11 @@ export function OnboardingPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Formule</p>
-                        <p className="text-sm font-semibold text-gray-900">{plans.find(p => p.id === selectedPlan)?.name}</p>
+                        <p className="text-sm font-semibold text-gray-900">{planDisplayName}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-gray-50">
                         <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Cotisation</p>
-                        <p className="text-sm font-semibold text-primary">{plans.find(p => p.id === selectedPlan)?.price}€ /mois</p>
+                        <p className="text-sm font-semibold text-primary">{planPriceLabel}</p>
                       </div>
                     </div>
                   </div>

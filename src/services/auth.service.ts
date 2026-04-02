@@ -160,6 +160,17 @@ export interface UpgradeToFamilyResponse {
   };
 }
 
+export interface ActiveHealthDeclaration {
+  id: string;
+  title: string;
+  contentText: string | null;
+  documentPath: string | null;
+  documentMimeType: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ===== Auth API calls =====
 
 export const authService = {
@@ -274,6 +285,12 @@ export const authService = {
     const { data } = await api.post<ApiResponse<UpgradeToFamilyResponse>>('/auth/upgrade-to-family', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return data;
+  },
+
+  /** GET /api/health-declarations/active — Déclaration sur l'honneur santé active */
+  async getActiveHealthDeclaration(): Promise<ApiResponse<ActiveHealthDeclaration>> {
+    const { data } = await api.get<ApiResponse<ActiveHealthDeclaration>>('/health-declarations/active');
     return data;
   },
 };

@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import {
   Shield, FileText, Heart,
   ArrowRight, MapPin,
-  Phone, Mail, ChevronRight, HelpCircle, Settings, FolderOpen, Users
+  Phone, Mail, ChevronRight, HelpCircle, Settings, FolderOpen, Users,
+  CheckCircle, AlertCircle, Clock
 } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +30,24 @@ export function DashboardHome() {
 
   const docCount = [user?.cniRectoPath, user?.cniVersoPath, user?.identityPhotoPath].filter(Boolean).length;
 
+  const docs = [
+    { label: 'CNI Recto', done: !!user?.cniRectoPath },
+    { label: 'CNI Verso', done: !!user?.cniVersoPath },
+    { label: 'Photo identité', done: !!user?.identityPhotoPath },
+  ];
+
+  const completionItems = [
+    !!user?.phone,
+    !!user?.residenceAddress,
+    !!user?.repatriationCountry,
+    !!user?.maritalStatus,
+    !!user?.cniRectoPath,
+    !!user?.cniVersoPath,
+    !!user?.identityPhotoPath,
+    trustedPersons.length > 0,
+  ];
+  const completionPct = Math.round((completionItems.filter(Boolean).length / completionItems.length) * 100);
+
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
@@ -42,23 +61,34 @@ export function DashboardHome() {
                 <img
                   src={avatarUrls![0]}
                   alt={displayName}
-                  className="w-16 h-16 rounded-2xl border-2 border-gold/50 object-cover hidden sm:block"
+                  className="w-16 h-16 rounded-2xl border-2 border-gold/50 object-cover hidden sm:block flex-shrink-0"
                   onError={onAvatarError}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl border-2 border-gold/50 bg-white/15 flex items-center justify-center hidden sm:block">
+                <div className="w-16 h-16 rounded-2xl border-2 border-gold/50 bg-white/15 flex items-center justify-center hidden sm:block flex-shrink-0">
                   <span className="text-xl font-bold text-white">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
                 </div>
               )}
               <div>
                 <p className="text-white/60 text-sm">Bonjour,</p>
                 <h1 className="text-2xl font-bold">{displayName}</h1>
-                <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
-                  <span className="flex items-center gap-1"><MapPin size={12} /> {user?.residenceAddress || 'Adresse non renseignée'}</span>
-                </div>
-                <div className="flex items-center gap-4 mt-1 text-sm text-white/70">
+                <div className="flex items-center gap-4 mt-1.5 text-sm text-white/70">
+                  {user?.residenceAddress && <span className="flex items-center gap-1"><MapPin size={12} /> {user.residenceAddress}</span>}
                   <span className="flex items-center gap-1"><Mail size={12} /> {user?.email}</span>
-                  <span className="flex items-center gap-1"><Phone size={12} /> {user?.phone}</span>
+                  {user?.phone && <span className="flex items-center gap-1"><Phone size={12} /> {user.phone}</span>}
+                </div>
+                <div className="flex items-center gap-3 mt-2.5">
+                  <div className="h-1.5 bg-white/20 rounded-full overflow-hidden w-32">
+                    <div className="h-full bg-gold rounded-full transition-all duration-700" style={{ width: `${completionPct}%` }} />
+                  </div>
+                  <span className="text-xs text-white/60">
+                    <span className="font-bold text-gold">{completionPct}%</span> profil complété
+                  </span>
+                  {completionPct < 100 && (
+                    <Link to="/app/parametres" className="text-[10px] text-white/50 hover:text-white/80 underline transition-colors">
+                      Compléter
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -72,6 +102,53 @@ export function DashboardHome() {
           </div>
         </div>
       </motion.div>
+
+      {/* Action banners */}
+      {user?.registrationStatus === 'pending' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 }}>
+          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <Clock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Dossier en cours d'examen</p>
+              <p className="text-xs text-amber-700 mt-0.5">Votre inscription est en attente de validation par notre équipe. Vous recevrez un email dès qu'elle sera traitée.</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {user?.registrationStatus === 'approved' && trustedPersons.length === 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 }}>
+          <div className="flex items-center justify-between gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Aucune personne de confiance</p>
+                <p className="text-xs text-amber-700 mt-0.5">Ajoutez au moins une personne de confiance pour que votre couverture soit opérationnelle.</p>
+              </div>
+            </div>
+            <Link to="/app/personne-confiance" className="text-xs text-amber-700 font-semibold whitespace-nowrap hover:underline flex items-center gap-1 flex-shrink-0">
+              Ajouter <ArrowRight size={11} />
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
+      {user?.registrationStatus === 'approved' && docCount < 3 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
+          <div className="flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+            <div className="flex items-start gap-3">
+              <FileText size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-blue-800">{3 - docCount} document{3 - docCount > 1 ? 's' : ''} manquant{3 - docCount > 1 ? 's' : ''}</p>
+                <p className="text-xs text-blue-700 mt-0.5">Votre dossier n'est pas complet. Transmettez vos documents pour finaliser votre inscription.</p>
+              </div>
+            </div>
+            <Link to="/app/documents" className="text-xs text-blue-700 font-semibold whitespace-nowrap hover:underline flex items-center gap-1 flex-shrink-0">
+              Uploader <ArrowRight size={11} />
+            </Link>
+          </div>
+        </motion.div>
+      )}
 
       {/* Info cards row */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -142,22 +219,27 @@ export function DashboardHome() {
 
         {/* Documents block */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <div className="h-full bg-primary rounded-2xl p-6 shadow-lg">
-            <h3 className="text-xs uppercase tracking-wider text-white/60 font-semibold mb-4">DOCUMENTS</h3>
-            {docCount > 0 ? (
-              <div className="py-2">
-                <p className="text-3xl font-bold text-white">{docCount}/3</p>
-                <p className="text-xs text-white/60 mt-1">documents transmis</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-4 text-center">
-                <FileText size={28} className="text-white/30 mb-2" />
-                <p className="text-sm text-white/60">Aucun document</p>
-              </div>
-            )}
+          <div className="h-full bg-primary rounded-2xl p-5 shadow-lg flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs uppercase tracking-wider text-white/60 font-semibold">DOCUMENTS</h3>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                docCount === 3 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+              }`}>{docCount}/3</span>
+            </div>
+            <div className="space-y-2.5 flex-1">
+              {docs.map(doc => (
+                <div key={doc.label} className="flex items-center justify-between">
+                  <span className="text-sm text-white/70">{doc.label}</span>
+                  {doc.done
+                    ? <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium"><CheckCircle size={12} /> Transmis</span>
+                    : <span className="flex items-center gap-1 text-xs text-amber-300 font-medium"><AlertCircle size={12} /> Manquant</span>
+                  }
+                </div>
+              ))}
+            </div>
             <div className="mt-3 pt-3 border-t border-white/20">
               <Link to="/app/documents" className="text-xs font-semibold text-white hover:underline flex items-center gap-1">
-                TOUS LES DOCUMENTS <ChevronRight size={12} />
+                GÉRER MES DOCUMENTS <ChevronRight size={12} />
               </Link>
             </div>
           </div>

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, AlertCircle, ArrowUpRight,
-  Loader2, CheckCircle, ArrowRight, FileText, Globe
+  Loader2, CheckCircle, ArrowRight, FileText, Globe, RefreshCw
 } from 'lucide-react';
-import { Card, Badge, PageLoader } from '@/components/ui';
+import { Card, Badge, SkeletonCard, SkeletonList } from '@/components/ui';
 import { adminService, type UserWithTrusted } from '@/services/admin.service';
 import { Link } from 'react-router-dom';
 import {
@@ -12,19 +12,14 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-const inscriptionsData = [
+const DEMO_TREND = [
   { month: 'Sep', inscrits: 8 },
   { month: 'Oct', inscrits: 14 },
   { month: 'Nov', inscrits: 11 },
-  { month: 'Dec', inscrits: 19 },
+  { month: 'Déc', inscrits: 19 },
   { month: 'Jan', inscrits: 23 },
-  { month: 'Fev', inscrits: 18 },
+  { month: 'Fév', inscrits: 18 },
   { month: 'Mar', inscrits: 27 },
-];
-
-const planDistribution = [
-  { name: 'Individuel', value: 68, color: '#0F5F43' },
-  { name: 'Familial', value: 32, color: '#F2C94C' },
 ];
 
 export function AdminDashboard() {
@@ -36,15 +31,28 @@ export function AdminDashboard() {
   const [pendingDeclarations, setPendingDeclarations] = useState(0);
   const [countriesCount, setCountriesCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
+  const [planDistribution, setPlanDistribution] = useState([
+    { name: 'Individuel', value: 0, color: '#0F5F43' },
+    { name: 'Familial', value: 0, color: '#F2C94C' },
+  ]);
 
-  const fetchData = async () => {
+  const today = new Date();
+  const greeting = today.getHours() < 12 ? 'Bonjour' : today.getHours() < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const dateLabel = today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
     try {
-      const [usersRes, pendingRes, declRes, countriesRes] = await Promise.all([
+      const [usersRes, pendingRes, declRes, pendingDeclRes, countriesRes, allUsersRes] = await Promise.all([
         adminService.getUsers({ limit: 5, page: 1 }),
         adminService.getRegistrations({ status: 'pending', limit: 5 }),
         adminService.getDeclarations({ limit: 1 }),
+        adminService.getDeclarations({ status: 'pending', limit: 1 }),
         adminService.getCountries().catch(() => null),
+        adminService.getUsers({ limit: 500 }),
       ]);
       if (usersRes.success) {
         setRecentUsers(usersRes.data.users);
@@ -54,17 +62,22 @@ export function AdminDashboard() {
         setPendingRegistrations(pendingRes.data.registrations);
         setPendingCount(pendingRes.data.pagination.total);
       }
-      if (declRes.success) {
-        setDeclarationsCount(declRes.data.pagination.total);
-        // Fetch pending declarations count separately
-        const pendingDeclRes = await adminService.getDeclarations({ status: 'pending', limit: 1 });
-        if (pendingDeclRes.success) setPendingDeclarations(pendingDeclRes.data.pagination.total);
-      }
-      if (countriesRes?.success) {
-        setCountriesCount(countriesRes.data.countries.length);
+      if (declRes.success) setDeclarationsCount(declRes.data.pagination.total);
+      if (pendingDeclRes.success) setPendingDeclarations(pendingDeclRes.data.pagination.total);
+      if (countriesRes?.success) setCountriesCount(countriesRes.data.countries.length);
+      if (allUsersRes.success) {
+        const all = allUsersRes.data.users;
+        const ind = all.filter(u => u.planType === 'individual').length;
+        const fam = all.filter(u => u.planType === 'family').length;
+        const total = ind + fam || 1;
+        setPlanDistribution([
+          { name: 'Individuel', value: Math.round((ind / total) * 100), color: '#0F5F43' },
+          { name: 'Familial', value: Math.round((fam / total) * 100), color: '#F2C94C' },
+        ]);
       }
     } catch { /* ignore */ }
-    setLoading(false);
+    if (!silent) setLoading(false);
+    else setRefreshing(false);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -83,12 +96,27 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrateur</h1>
-        <p className="text-sm text-gray-500 mt-1">Vue d'ensemble de la plateforme Aldiana Care.</p>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{greeting} 👋</h1>
+          <p className="text-sm text-gray-500 mt-1 capitalize">{dateLabel} — Vue d'ensemble de la plateforme.</p>
+        </div>
+        <button
+          onClick={() => fetchData(true)}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-900 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
+        >
+          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? 'Actualisation…' : 'Rafraîchir'}
+        </button>
       </motion.div>
 
       {/* KPI Stats */}
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => <SkeletonCard key={i} />)}
+        </div>
+      ) : (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <Card>
@@ -101,7 +129,7 @@ export function AdminDashboard() {
               </Link>
             </div>
             <p className="text-xs text-gray-400 mt-3">Inscrits au total</p>
-            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : totalUsers}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{totalUsers}</p>
           </Card>
         </motion.div>
 
@@ -119,7 +147,7 @@ export function AdminDashboard() {
             </div>
             <p className="text-xs text-gray-400 mt-3">En attente</p>
             <p className={`text-3xl font-bold mt-0.5 ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
-              {loading ? '—' : pendingCount}
+              {pendingCount}
             </p>
           </Card>
         </motion.div>
@@ -135,7 +163,7 @@ export function AdminDashboard() {
               </Link>
             </div>
             <p className="text-xs text-gray-400 mt-3">Déclarations</p>
-            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : declarationsCount}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{declarationsCount}</p>
             {pendingDeclarations > 0 && (
               <p className="text-[10px] text-red-500 font-semibold mt-0.5">{pendingDeclarations} en attente</p>
             )}
@@ -153,10 +181,11 @@ export function AdminDashboard() {
               </Link>
             </div>
             <p className="text-xs text-gray-400 mt-3">Pays couverts</p>
-            <p className="text-3xl font-bold text-gray-900 mt-0.5">{loading ? '—' : countriesCount}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-0.5">{countriesCount}</p>
           </Card>
         </motion.div>
       </div>
+      )}
 
       {/* Pending quick-approve section */}
       {!loading && pendingCount > 0 && (
@@ -210,14 +239,14 @@ export function AdminDashboard() {
           <Card>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="font-semibold text-gray-900">Évolution des inscriptions</h3>
-                <p className="text-xs text-gray-400">Données de démonstration</p>
+                <h3 className="font-semibold text-gray-900">Tendance des inscriptions</h3>
+                <p className="text-xs text-gray-400">Projection indicative — en attente API temps-réel</p>
               </div>
-              <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg">Demo</span>
+              <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Estimé</span>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={inscriptionsData}>
+                <AreaChart data={DEMO_TREND}>
                   <defs>
                     <linearGradient id="colorInscrits" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#0F5F43" stopOpacity={0.2} />
@@ -241,7 +270,7 @@ export function AdminDashboard() {
         {/* Plan distribution */}
         <Card>
           <h3 className="font-semibold text-gray-900">Répartition des plans</h3>
-          <p className="text-xs text-gray-400 mb-4">Données de démonstration</p>
+          <p className="text-xs text-gray-400 mb-4">Données réelles — {loading ? '…' : totalUsers + ' adhérents'}</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -252,7 +281,7 @@ export function AdminDashboard() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                  formatter={(v) => [`${v}%`, '']}
+                  formatter={(v: number | undefined) => [`${v ?? 0}%`, '']}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -266,9 +295,9 @@ export function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${plan.value}%`, backgroundColor: plan.color }} />
+                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${plan.value}%`, backgroundColor: plan.color }} />
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 w-10 text-right">{plan.value}%</span>
+                  <span className="text-sm font-semibold text-gray-900 w-10 text-right">{loading ? '—' : `${plan.value}%`}</span>
                 </div>
               </div>
             ))}
@@ -285,7 +314,7 @@ export function AdminDashboard() {
           </Link>
         </div>
         {loading ? (
-          <PageLoader variant="inline" size="sm" label="Chargement..." />
+          <SkeletonList rows={5} />
         ) : recentUsers.length === 0 ? (
           <div className="flex items-center justify-center p-8">
             <p className="text-sm text-gray-400">Aucune inscription</p>

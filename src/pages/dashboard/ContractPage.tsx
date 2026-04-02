@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, FileText, Calendar, CheckCircle, Globe, User, MapPin, Phone, Mail, Clock, Users } from 'lucide-react';
-import { Card, Badge } from '@/components/ui';
+import { Shield, FileText, Calendar, CheckCircle, Globe, User, MapPin, Phone, Mail, Clock, Users, Download, Hash } from 'lucide-react';
+import { Card, Badge, SkeletonCard } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
+import { subscriptionService, type MySubscriptionResponse } from '@/services/subscription.service';
 
 const PLAN_FEATURES: Record<string, string[]> = {
   individual: [
@@ -26,6 +28,34 @@ const PLAN_FEATURES: Record<string, string[]> = {
 
 export function ContractPage() {
   const { user, familyMembers } = useAuth();
+  const [subscription, setSubscription] = useState<MySubscriptionResponse | null>(null);
+  const [subLoading, setSubLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    if (user?.registrationStatus === 'approved') {
+      setSubLoading(true);
+      subscriptionService.getMySubscription()
+        .then(res => { if (res.success) setSubscription(res.data); })
+        .catch(() => {})
+        .finally(() => setSubLoading(false));
+    }
+  }, [user]);
+
+  const handleDownloadAttestation = async () => {
+    setDownloading(true);
+    try {
+      const blob = await subscriptionService.downloadAttestation();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attestation-aldiana-${subscription?.userSubscription?.subscriptionNumber ?? 'care'}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ } finally {
+      setDownloading(false);
+    }
+  };
 
   const planLabel = user?.planType === 'family' ? 'Familiale' : 'Individuelle';
   const statusLabel =
@@ -40,6 +70,20 @@ export function ContractPage() {
   const inscriptionDate = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
+
+  const effectDate = subscription?.userSubscription?.effectDate
+    ? new Date(subscription.userSubscription.effectDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : subscription?.userSubscription?.startDate
+    ? new Date(subscription.userSubscription.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+
+  const expiryDate = subscription?.userSubscription?.expiryDate
+    ? new Date(subscription.userSubscription.expiryDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : subscription?.userSubscription?.endDate
+    ? new Date(subscription.userSubscription.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+
+  const subscriptionNumber = subscription?.userSubscription?.subscriptionNumber ?? null;
 
   return (
     <div className="space-y-6">
@@ -87,27 +131,30 @@ export function ContractPage() {
       </Card>
 
       {/* Statut details */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {subLoading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{[0,1,2,3].map(i => <SkeletonCard key={i} />)}</div>
+      ) : null}
+      <div className={`grid sm:grid-cols-2 lg:grid-cols-4 gap-4 ${subLoading ? 'hidden' : ''}`}>
         <Card>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-primary bg-primary/10">
-            <Calendar size={18} />
+            <Hash size={18} />
           </div>
-          <p className="text-xs text-gray-400">Date d'inscription</p>
-          <p className="text-sm font-bold text-gray-900 mt-0.5">{inscriptionDate}</p>
+          <p className="text-xs text-gray-400">N° d'abonnement</p>
+          <p className="text-sm font-bold text-gray-900 mt-0.5 font-mono">{subscriptionNumber ?? '—'}</p>
         </Card>
         <Card>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-gold-dark bg-gold/10">
-            <Shield size={18} />
+            <Calendar size={18} />
           </div>
-          <p className="text-xs text-gray-400">Formule</p>
-          <p className="text-sm font-bold text-gray-900 mt-0.5">{planLabel}</p>
+          <p className="text-xs text-gray-400">Date d'effet</p>
+          <p className="text-sm font-bold text-gray-900 mt-0.5">{effectDate}</p>
         </Card>
         <Card>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-info bg-info/10">
-            <Globe size={18} />
+            <Calendar size={18} />
           </div>
-          <p className="text-xs text-gray-400">Zone de couverture</p>
-          <p className="text-sm font-bold text-gray-900 mt-0.5">Monde entier</p>
+          <p className="text-xs text-gray-400">Date d'échéance</p>
+          <p className="text-sm font-bold text-gray-900 mt-0.5">{expiryDate}</p>
         </Card>
         <Card>
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${
@@ -192,19 +239,38 @@ export function ContractPage() {
           </Card>
         )}
 
-        {/* Documents — pas d'API contrat */}
+        {/* Documents du contrat */}
         {user?.planType !== 'family' && (
           <Card>
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <FileText size={16} className="text-primary" /> Documents du contrat
             </h3>
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <Clock size={28} className="text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400">Documents en cours de préparation</p>
-              <p className="text-xs text-gray-300 mt-1">
-                Votre contrat sera disponible après approbation de votre dossier.
-              </p>
-            </div>
+            {user?.registrationStatus === 'approved' ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-secondary">
+                  <div className="flex items-center gap-3">
+                    <FileText size={16} className="text-primary flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Attestation de couverture</p>
+                      <p className="text-xs text-gray-400">PDF officiel avec QR code de vérification</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDownloadAttestation}
+                    disabled={downloading}
+                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-dark disabled:opacity-50 transition-colors"
+                  >
+                    <Download size={14} />
+                    {downloading ? 'Téléchargement…' : 'Télécharger'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Clock size={28} className="text-gray-200 mb-2" />
+                <p className="text-sm text-gray-400">Documents disponibles après approbation</p>
+              </div>
+            )}
           </Card>
         )}
       </div>

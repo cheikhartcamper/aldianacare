@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Gift, Users, Copy, Send, RefreshCw, CheckCircle,
-  Mail, Phone, Loader2, Share2, Percent, AlertCircle
+  Mail, Phone, Share2, Percent, AlertCircle
 } from 'lucide-react';
-import { Card, Badge, Button, Input } from '@/components/ui';
+import { Card, Badge, Button, Input, SkeletonCard } from '@/components/ui';
 import { referralService, type MyCodeResponse, type Referral } from '@/services/referral.service';
 
 export function SponsorshipDashboard() {
@@ -115,12 +115,10 @@ export function SponsorshipDashboard() {
       )}
 
       {loading ? (
-        <Card>
-          <div className="flex items-center justify-center gap-2 py-10 text-gray-500">
-            <Loader2 size={18} className="animate-spin" />
-            Chargement...
-          </div>
-        </Card>
+        <>
+          <div className="grid grid-cols-3 gap-4">{[0,1,2].map(i => <SkeletonCard key={i} />)}</div>
+          <SkeletonCard />
+        </>
       ) : (
         <>
           {/* Stats */}
