@@ -47,6 +47,8 @@ export function AdminSettingsPage() {
   const [managerForm, setManagerForm] = useState({ firstName: '', lastName: '', email: '', phone: '', countryId: '' });
   const [managerSaving, setManagerSaving] = useState(false);
   const [managerError, setManagerError] = useState<string | null>(null);
+  const [managerDeleting, setManagerDeleting] = useState<string | null>(null);
+  const [deleteManagerConfirm, setDeleteManagerConfirm] = useState<CountryManager | null>(null);
 
   // Fetch general settings
   useEffect(() => {
@@ -165,6 +167,17 @@ export function AdminSettingsPage() {
   };
 
   // Manager CRUD
+  const handleDeleteManager = async () => {
+    if (!deleteManagerConfirm) return;
+    setManagerDeleting(deleteManagerConfirm.id);
+    try {
+      await adminService.deleteCountryManager(deleteManagerConfirm.id);
+      setDeleteManagerConfirm(null);
+      fetchManagers();
+    } catch { /* ignore */ }
+    setManagerDeleting(null);
+  };
+
   const handleCreateManager = async () => {
     if (!managerForm.firstName || !managerForm.email || !managerForm.countryId) return;
     setManagerSaving(true);
@@ -573,6 +586,16 @@ export function AdminSettingsPage() {
                           <Phone size={10} /> {manager.phone}
                         </p>
                       </div>
+                      <button
+                        onClick={() => setDeleteManagerConfirm(manager)}
+                        disabled={managerDeleting === manager.id}
+                        title="Supprimer ce manager"
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors disabled:opacity-50 flex-shrink-0"
+                      >
+                        {managerDeleting === manager.id
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <Trash2 size={14} />}
+                      </button>
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <div className="flex items-center gap-2">
@@ -592,6 +615,54 @@ export function AdminSettingsPage() {
                   </Card>
                 </motion.div>
               ))}
+            </div>
+          )}
+
+          {/* Delete Manager Confirm Modal */}
+          {deleteManagerConfirm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                    <Trash2 size={20} className="text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Supprimer le manager</h3>
+                    <p className="text-xs text-gray-400">Action irréversible</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-2">Vous êtes sur le point de supprimer définitivement :</p>
+                <div className="p-3 bg-red-50 rounded-xl border border-red-100 mb-4">
+                  <p className="text-sm font-semibold text-gray-900">{deleteManagerConfirm.firstName} {deleteManagerConfirm.lastName}</p>
+                  <p className="text-xs text-gray-500">{deleteManagerConfirm.email}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Pays : {deleteManagerConfirm.assignedCountry?.name}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    fullWidth
+                    onClick={() => setDeleteManagerConfirm(null)}
+                    disabled={!!managerDeleting}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    fullWidth
+                    icon={managerDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    onClick={handleDeleteManager}
+                    disabled={!!managerDeleting}
+                  >
+                    {managerDeleting ? 'Suppression...' : 'Supprimer'}
+                  </Button>
+                </div>
+              </motion.div>
             </div>
           )}
 

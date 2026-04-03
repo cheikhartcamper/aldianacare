@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Phone, Mail, CheckCircle, Shield, User, AlertTriangle, Info, Copy, Plus, Trash2, Edit3, Save, X, Loader2 } from 'lucide-react';
-import { Card, Badge, Button, Input } from '@/components/ui';
+import { Card, Badge, Button, Input, PhoneInput } from '@/components/ui';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -209,7 +209,7 @@ export function TrustedPersonPage() {
       <div className="grid sm:grid-cols-2 gap-3">
         <Input label="Prénom *" value={draft.firstName} onChange={(e) => setField('firstName', e.target.value)} placeholder="Prénom" />
         <Input label="Nom *" value={draft.lastName} onChange={(e) => setField('lastName', e.target.value)} placeholder="Nom" />
-        <Input label="Téléphone *" type="tel" value={draft.phone} onChange={(e) => setField('phone', e.target.value)} placeholder="+221..." />
+        <PhoneInput label="Téléphone *" value={draft.phone} onChange={(v) => setField('phone', v)} />
         <Input label="Email" type="email" value={draft.email} onChange={(e) => setField('email', e.target.value)} placeholder="optionnel" />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Relation *</label>

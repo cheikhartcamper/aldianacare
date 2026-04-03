@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -272,10 +272,14 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-1">
-            <button className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <NavLink to="/admin/inscriptions" className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-danger rounded-full" />
-            </button>
+              {pendingCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full px-0.5 leading-none">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              )}
+            </NavLink>
             <div className="relative ml-1" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}

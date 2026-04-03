@@ -70,9 +70,11 @@ function App() {
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/parrainage" element={<SponsorshipPage />} />
-            <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
-            <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
           </Route>
+
+          {/* PayTech callback pages — standalone (no navbar/footer) */}
+          <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
+          <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
 
           {/* Auth pages (standalone layouts) */}
           <Route path="/connexion" element={<LoginPage />} />

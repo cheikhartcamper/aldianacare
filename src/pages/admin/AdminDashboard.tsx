@@ -46,13 +46,14 @@ export function AdminDashboard() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [usersRes, pendingRes, declRes, pendingDeclRes, countriesRes, allUsersRes] = await Promise.all([
+      const [usersRes, pendingRes, declRes, pendingDeclRes, countriesRes, indUsersRes, famUsersRes] = await Promise.all([
         adminService.getUsers({ limit: 5, page: 1 }),
         adminService.getRegistrations({ status: 'pending', limit: 5 }),
         adminService.getDeclarations({ limit: 1 }),
         adminService.getDeclarations({ status: 'pending', limit: 1 }),
         adminService.getCountries().catch(() => null),
-        adminService.getUsers({ limit: 500 }),
+        adminService.getUsers({ limit: 1, planType: 'individual' }),
+        adminService.getUsers({ limit: 1, planType: 'family' }),
       ]);
       if (usersRes.success) {
         setRecentUsers(usersRes.data.users);
@@ -65,10 +66,9 @@ export function AdminDashboard() {
       if (declRes.success) setDeclarationsCount(declRes.data.pagination.total);
       if (pendingDeclRes.success) setPendingDeclarations(pendingDeclRes.data.pagination.total);
       if (countriesRes?.success) setCountriesCount(countriesRes.data.countries.length);
-      if (allUsersRes.success) {
-        const all = allUsersRes.data.users;
-        const ind = all.filter(u => u.planType === 'individual').length;
-        const fam = all.filter(u => u.planType === 'family').length;
+      {
+        const ind = indUsersRes.success ? indUsersRes.data.pagination.total : 0;
+        const fam = famUsersRes.success ? famUsersRes.data.pagination.total : 0;
         const total = ind + fam || 1;
         setPlanDistribution([
           { name: 'Individuel', value: Math.round((ind / total) * 100), color: '#0F5F43' },

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Users, TrendingUp, AlertCircle, Search, Download, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { CreditCard, Users, TrendingUp, AlertCircle, Search, Download, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, Calendar } from 'lucide-react';
 import { Card, Badge, SkeletonCard, SkeletonTable } from '@/components/ui';
-import { adminService, type AdminPayment } from '@/services/admin.service';
+import { adminService, type AdminPayment, type PaymentsDashboard, type UpcomingDue } from '@/services/admin.service';
 import { documentService } from '@/services/document.service';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
@@ -11,30 +11,47 @@ const STATUS_MAP: Record<string, { label: string; variant: 'success' | 'warning'
   failed:    { label: 'Échoué', variant: 'danger' },
 };
 
+type Tab = 'history' | 'upcoming';
+
 export function AdminPaymentsPage() {
+  const [tab, setTab] = useState<Tab>('history');
   const [payments, setPayments] = useState<AdminPayment[]>([]);
-  const [summary, setSummary] = useState({ totalRevenue: 0, thisMonth: 0, pending: 0, failed: 0 });
+  const [dashboard, setDashboard] = useState<PaymentsDashboard | null>(null);
+  const [upcomingDues, setUpcomingDues] = useState<UpcomingDue[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingDues, setLoadingDues] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminService.getPayments({ page, limit: 20, status: statusFilter || undefined });
-      if (res.success) {
-        setPayments(res.data.payments ?? []);
-        setSummary(res.data.summary ?? { totalRevenue: 0, thisMonth: 0, pending: 0, failed: 0 });
-        setTotal(res.data.pagination?.total ?? 0);
-        setTotalPages(res.data.pagination?.totalPages ?? 1);
+      const [paymentsRes, dashRes] = await Promise.all([
+        adminService.getPayments({ page, limit: 20, status: statusFilter || undefined }),
+        adminService.getPaymentsDashboard(),
+      ]);
+      if (paymentsRes.success) {
+        setPayments(paymentsRes.data.payments ?? []);
+        setTotal(paymentsRes.data.pagination?.total ?? 0);
+        setTotalPages(paymentsRes.data.pagination?.totalPages ?? 1);
       }
+      if (dashRes.success) setDashboard(dashRes.data);
     } catch { /* ignore */ }
     setLoading(false);
   }, [page, statusFilter]);
+
+  const fetchUpcomingDues = useCallback(async () => {
+    setLoadingDues(true);
+    try {
+      const res = await adminService.getUpcomingDues({ days: 7 });
+      if (res.success) setUpcomingDues(res.data.dues ?? []);
+    } catch { /* ignore */ }
+    setLoadingDues(false);
+  }, []);
 
   useEffect(() => {
     fetchPayments();
@@ -42,6 +59,10 @@ export function AdminPaymentsPage() {
       .then(r => { if (r.success) setTotalUsers(r.data.pagination.total); })
       .catch(() => {});
   }, [fetchPayments]);
+
+  useEffect(() => {
+    if (tab === 'upcoming') fetchUpcomingDues();
+  }, [tab, fetchUpcomingDues]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -59,6 +80,9 @@ export function AdminPaymentsPage() {
   };
 
   const fmt = (n: number) => n.toLocaleString('fr-FR') + ' XOF';
+  const totalRevenue = dashboard?.totalCollected ?? 0;
+  const pendingCount = dashboard?.paymentsPending ?? 0;
+  const failedCount  = dashboard?.paymentsFailed  ?? 0;
 
   return (
     <div className="space-y-6">
@@ -82,10 +106,10 @@ export function AdminPaymentsPage() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Adhérents actifs', value: totalUsers, icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
-            { label: 'Revenus ce mois', value: fmt(summary?.thisMonth ?? 0), icon: CreditCard, color: 'text-success', bg: 'bg-success/10' },
-            { label: 'Revenu total', value: fmt(summary?.totalRevenue ?? 0), icon: TrendingUp, color: 'text-gold-dark', bg: 'bg-gold/10' },
-            { label: 'Impayés / Échoués', value: (summary?.pending ?? 0) + (summary?.failed ?? 0), icon: AlertCircle, color: 'text-danger', bg: 'bg-danger/10' },
+            { label: 'Adhérents actifs',  value: totalUsers,                   icon: Users,       color: 'text-primary',   bg: 'bg-primary/10' },
+            { label: 'Total encaissé',    value: fmt(totalRevenue),            icon: TrendingUp,  color: 'text-gold-dark', bg: 'bg-gold/10' },
+            { label: 'En attente',        value: pendingCount,                 icon: Clock,       color: 'text-amber-500', bg: 'bg-amber-50' },
+            { label: 'Impayés / Échoués',value: failedCount,                  icon: AlertCircle, color: 'text-danger',    bg: 'bg-danger/10' },
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card>
@@ -104,6 +128,73 @@ export function AdminPaymentsPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+        {([['history', 'Historique', CreditCard], ['upcoming', 'Échéances (7j)', Calendar]] as const).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Icon size={14} />{label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'upcoming' ? (
+        <Card>
+          <h2 className="font-semibold text-gray-900 mb-4">Abonnements à relancer dans les 7 prochains jours</h2>
+          {loadingDues ? (
+            <div className="space-y-2">{[0,1,2].map(i => <SkeletonCard key={i} />)}</div>
+          ) : upcomingDues.length === 0 ? (
+            <div className="py-12 text-center">
+              <Calendar size={32} className="mx-auto text-gray-200 mb-3" />
+              <p className="text-sm text-gray-400">Aucune échéance imminente</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {['Adhérent', 'Plan', 'Membres', 'Montant dû', 'Échéance', 'Dans'].map(h => (
+                      <th key={h} className="text-left pb-3 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {upcomingDues.map((due, i) => (
+                    <tr key={i} className="hover:bg-gray-50/50">
+                      <td className="py-3 pr-4">
+                        <p className="font-medium text-gray-900">{due.user.firstName} {due.user.lastName}</p>
+                        <p className="text-xs text-gray-400">{due.user.email}</p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={due.subscription.planType === 'family' ? 'primary' : 'neutral'} size="sm">
+                          {due.subscription.planType === 'family' ? 'Family' : 'Individuel'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 pr-4 text-gray-500">{due.subscription.memberCount}</td>
+                      <td className="py-3 pr-4 font-semibold text-gray-900">{due.dueAmount.toLocaleString('fr-FR')} XOF</td>
+                      <td className="py-3 pr-4 text-gray-500">{new Date(due.nextDueDate).toLocaleDateString('fr-FR')}</td>
+                      <td className="py-3">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          due.daysUntilDue <= 2 ? 'bg-danger/10 text-danger' :
+                          due.daysUntilDue <= 5 ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          J-{due.daysUntilDue}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      ) : (
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="relative w-full sm:w-56">
@@ -185,6 +276,7 @@ export function AdminPaymentsPage() {
           </div>
         )}
       </Card>
+      )}
     </div>
   );
 }

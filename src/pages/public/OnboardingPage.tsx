@@ -6,7 +6,7 @@ import {
   MapPin, Camera, Upload, FileText, Users, Gift,
   Sparkles, Eye, EyeOff, X, Check, Lock, AlertTriangle, Loader2
 } from 'lucide-react';
-import { Button, Card, Input } from '@/components/ui';
+import { Button, Card, Input, PhoneInput } from '@/components/ui';
 import { Logo } from '@/components/ui';
 import { authService, type ScanCniResponse, type ActiveHealthDeclaration } from '@/services/auth.service';
 import { adminService } from '@/services/admin.service';
@@ -42,6 +42,7 @@ interface TrustedPersonForm {
 interface FamilyMemberForm {
   firstName: string;
   lastName: string;
+  relation: string;
   dateOfBirth: string;
   email: string;
   phone: string;
@@ -53,7 +54,7 @@ interface FamilyMemberForm {
 }
 
 const emptyTrusted: TrustedPersonForm = { firstName: '', lastName: '', phone: '', email: '', relation: '', relationDetails: '' };
-const emptyMember: FamilyMemberForm = { firstName: '', lastName: '', dateOfBirth: '', email: '', phone: '', password: '', confirmPassword: '', residenceCountry: '', residenceAddress: '', repatriationCountry: '' };
+const emptyMember: FamilyMemberForm = { firstName: '', lastName: '', relation: '', dateOfBirth: '', email: '', phone: '', password: '', confirmPassword: '', residenceCountry: '', residenceAddress: '', repatriationCountry: '' };
 
 function isAdultByDob(dob: string): boolean {
   if (!dob) return false;
@@ -88,6 +89,7 @@ export function OnboardingPage() {
   // Personal info
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -305,6 +307,7 @@ export function OnboardingPage() {
       formData.append('phone', otpPhone);
       formData.append('password', password);
       formData.append('confirmPassword', confirmPassword);
+      formData.append('dateOfBirth', dateOfBirth);
       formData.append('maritalStatus', maritalStatus);
       formData.append('residenceCountry', residenceCountry);
       formData.append('residenceAddress', residenceAddress);
@@ -401,7 +404,7 @@ export function OnboardingPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-4 md:py-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -413,16 +416,16 @@ export function OnboardingPage() {
             {/* ===== STEP 1: Choix de la formule ===== */}
             {step === 1 && (
               <div>
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                    <Shield size={28} className="text-primary" />
+                <div className="text-center mb-3">
+                  <div className="w-10 h-10 mx-auto mb-2 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <Shield size={20} className="text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Choisissez votre formule</h2>
-                  <p className="text-sm text-gray-500">Sélectionnez la couverture qui vous convient</p>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Choisissez votre formule</h2>
+                  <p className="text-xs text-gray-500">Sélectionnez la couverture qui vous convient</p>
                 </div>
 
                 {/* Duration toggle */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-4">
                   <div className="flex bg-gray-100 rounded-full p-1 gap-1">
                     <button
                       onClick={() => setSelectedDuration('monthly')}
@@ -453,7 +456,7 @@ export function OnboardingPage() {
                     <Loader2 size={28} className="animate-spin text-primary/40" />
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-2 gap-4">
                     {/* Individuel */}
                     {(() => {
                       const plan = apiPlans?.individual?.[selectedDuration];
@@ -476,16 +479,16 @@ export function OnboardingPage() {
                               {selectedPlan === 'individual' && <Check size={14} className="text-white" />}
                             </div>
                           </div>
-                          <div className="mb-4">
+                          <div className="mb-2">
                             {plan?.basePrice ? (
                               <>
                                 <div className="flex items-baseline gap-1">
-                                  <span className="text-3xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
+                                  <span className="text-2xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
                                   <span className="text-sm font-semibold text-gray-500">FCFA</span>
                                   <span className="text-gray-400 text-xs">/{selectedDuration === 'monthly' ? 'mois' : 'an'}</span>
                                 </div>
                                 {selectedDuration === 'monthly' && apiPlans?.individual?.yearly?.basePrice && (
-                                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                  <p className="text-xs text-emerald-600 mt-0.5 font-medium">
                                     {apiPlans.individual.yearly.basePrice.toLocaleString('fr-FR')} FCFA /an
                                   </p>
                                 )}
@@ -494,10 +497,10 @@ export function OnboardingPage() {
                               <p className="text-sm text-gray-400 italic">Prix non disponible</p>
                             )}
                           </div>
-                          <ul className="space-y-2">
+                          <ul className="space-y-1">
                             {INDIVIDUAL_FEATURES.map((f) => (
-                              <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                                <CheckCircle size={14} className="text-primary flex-shrink-0 mt-0.5" />
+                              <li key={f} className="flex items-start gap-2 text-xs text-gray-600">
+                                <CheckCircle size={12} className="text-primary flex-shrink-0 mt-0.5" />
                                 {f}
                               </li>
                             ))}
@@ -531,16 +534,16 @@ export function OnboardingPage() {
                               {selectedPlan === 'family' && <Check size={14} className="text-white" />}
                             </div>
                           </div>
-                          <div className="mb-4">
+                          <div className="mb-2">
                             {plan?.basePrice ? (
                               <>
                                 <div className="flex items-baseline gap-1">
-                                  <span className="text-3xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
+                                  <span className="text-2xl font-bold text-gray-900">{plan.basePrice.toLocaleString('fr-FR')}</span>
                                   <span className="text-sm font-semibold text-gray-500">FCFA</span>
                                   <span className="text-gray-400 text-xs">/{selectedDuration === 'monthly' ? 'mois' : 'an'}</span>
                                 </div>
                                 {selectedDuration === 'monthly' && apiPlans?.family?.yearly?.basePrice && (
-                                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                  <p className="text-xs text-emerald-600 mt-0.5 font-medium">
                                     {apiPlans.family.yearly.basePrice.toLocaleString('fr-FR')} FCFA /an
                                   </p>
                                 )}
@@ -549,10 +552,10 @@ export function OnboardingPage() {
                               <p className="text-sm text-gray-400 italic">Prix non disponible</p>
                             )}
                           </div>
-                          <ul className="space-y-2">
+                          <ul className="space-y-1">
                             {FAMILY_FEATURES.map((f) => (
-                              <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                                <CheckCircle size={14} className="text-primary flex-shrink-0 mt-0.5" />
+                              <li key={f} className="flex items-start gap-2 text-xs text-gray-600">
+                                <CheckCircle size={12} className="text-primary flex-shrink-0 mt-0.5" />
                                 {f}
                               </li>
                             ))}
@@ -586,13 +589,10 @@ export function OnboardingPage() {
                 <Card>
                   <div className="space-y-6">
                     <div>
-                      <Input
-                        label="Numéro de téléphone (avec indicatif)"
-                        type="tel"
-                        placeholder="+33 6 12 34 56 78"
-                        icon={<Phone size={16} />}
+                      <PhoneInput
+                        label="Numéro de téléphone"
                         value={otpPhone}
-                        onChange={(e) => setOtpPhone(e.target.value)}
+                        onChange={setOtpPhone}
                         disabled={otpVerified}
                       />
                     </div>
@@ -661,6 +661,7 @@ export function OnboardingPage() {
                       <Input label="Nom" placeholder="Votre nom de famille" icon={<User size={16} />} value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                     </div>
                     <Input label="Email" type="email" placeholder="votre@email.com" icon={<Mail size={16} />} value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input label="Date de naissance" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required />
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="relative">
                         <Input label="Mot de passe" type={showPassword ? 'text' : 'password'} placeholder="Min 8 car., 1 maj, 1 chiffre, 1 spécial" icon={<Lock size={16} />} value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -922,7 +923,7 @@ export function OnboardingPage() {
                           <Input label="Nom" placeholder="Nom" icon={<User size={14} />} value={tp.lastName} onChange={(e) => updateTrusted(idx, 'lastName', e.target.value)} />
                         </div>
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <Input label="Téléphone" type="tel" placeholder="+221 77..." icon={<Phone size={14} />} value={tp.phone} onChange={(e) => updateTrusted(idx, 'phone', e.target.value)} />
+                          <PhoneInput label="Téléphone" value={tp.phone} onChange={(v) => updateTrusted(idx, 'phone', v)} />
                           <Input label="Email (optionnel)" type="email" placeholder="email@exemple.com" icon={<Mail size={14} />} value={tp.email} onChange={(e) => updateTrusted(idx, 'email', e.target.value)} />
                         </div>
                         <div>
@@ -931,8 +932,13 @@ export function OnboardingPage() {
                             <option value="">Sélectionnez</option>
                             <option value="pere">Père</option>
                             <option value="mere">Mère</option>
+                            <option value="conjoint">Conjoint(e)</option>
+                            <option value="fils">Fils</option>
+                            <option value="fille">Fille</option>
                             <option value="frere">Frère</option>
                             <option value="soeur">Sœur</option>
+                            <option value="oncle">Oncle</option>
+                            <option value="tante">Tante</option>
                             <option value="ami">Ami(e)</option>
                             <option value="cousin">Cousin(e)</option>
                             <option value="autre">Autre</option>
@@ -978,9 +984,25 @@ export function OnboardingPage() {
                           <Input label="Prénom" placeholder="Prénom" value={m.firstName} onChange={(e) => updateMember(idx, 'firstName', e.target.value)} />
                           <Input label="Nom" placeholder="Nom" value={m.lastName} onChange={(e) => updateMember(idx, 'lastName', e.target.value)} />
                         </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Relation avec le souscripteur</label>
+                          <select value={m.relation} onChange={(e) => updateMember(idx, 'relation', e.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white">
+                            <option value="">Sélectionnez</option>
+                            <option value="conjoint">Conjoint(e)</option>
+                            <option value="fils">Fils</option>
+                            <option value="fille">Fille</option>
+                            <option value="pere">Père</option>
+                            <option value="mere">Mère</option>
+                            <option value="frere">Frère</option>
+                            <option value="soeur">Sœur</option>
+                            <option value="oncle">Oncle</option>
+                            <option value="tante">Tante</option>
+                            <option value="autre">Autre</option>
+                          </select>
+                        </div>
                         <div className="grid sm:grid-cols-2 gap-3">
                           <Input label="Date de naissance" type="date" value={m.dateOfBirth} onChange={(e) => updateMember(idx, 'dateOfBirth', e.target.value)} />
-                          <Input label="Téléphone" type="tel" placeholder="+33..." value={m.phone} onChange={(e) => updateMember(idx, 'phone', e.target.value)} />
+                          <PhoneInput label="Téléphone" value={m.phone} onChange={(v) => updateMember(idx, 'phone', v)} />
                         </div>
                         <Input label="Email (optionnel)" type="email" placeholder="email@exemple.com" value={m.email} onChange={(e) => updateMember(idx, 'email', e.target.value)} />
                         <div className="grid sm:grid-cols-2 gap-3">

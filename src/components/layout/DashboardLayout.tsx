@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { Component, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, CreditCard, Gift, HeadphonesIcon,
@@ -10,6 +10,35 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge, Logo } from '@/components/ui';
 import { getImageUrls } from '@/lib/imageUrl';
 import { notificationService } from '@/services/notification.service';
+
+class PageErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(err: Error) {
+    return { error: err?.message || 'Erreur inconnue' };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="p-6 max-w-lg mx-auto mt-10">
+          <div className="p-5 bg-red-50 border border-red-200 rounded-2xl">
+            <p className="font-semibold text-red-700 text-sm mb-1">Erreur d'affichage de la page</p>
+            <p className="text-xs text-red-600 font-mono break-all">{this.state.error}</p>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="mt-3 px-3 py-1.5 text-xs font-medium bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const pageNames: Record<string, string> = {
   '/app': 'Tableau de bord',
@@ -150,12 +179,12 @@ export function DashboardLayout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  // Fetch unread notification count
+  // Fetch unread notification count (refresh on route change)
   useEffect(() => {
     notificationService.getNotifications({ limit: 1 })
       .then(res => { if (res.success) setUnreadNotif(res.data.unreadCount); })
       .catch(() => {});
-  }, []);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-surface-secondary flex">
@@ -389,7 +418,9 @@ export function DashboardLayout() {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <Outlet />
+              <PageErrorBoundary>
+                <Outlet />
+              </PageErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </main>

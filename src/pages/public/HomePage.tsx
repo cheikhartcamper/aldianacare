@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import {
   Shield, Star, CheckCircle,
   Globe, ArrowRight, Zap, HeadphonesIcon,
-  MapPin, Camera
+  MapPin, ChevronDown, MessageCircle, Users
 } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 
@@ -18,11 +19,11 @@ const fadeUp: Variants = {
 };
 
 const howSteps: { num: string; badge: string; desc: string; side: 'left' | 'right'; illustration: 'form' | 'doc' | 'chat' | 'check' | 'app' }[] = [
-  { num: '01', badge: 'SOUSCRIPTION', desc: 'Renseignez les informations de votre bénéficiaire en ligne ou par téléphone.', side: 'left', illustration: 'form' },
-  { num: '02', badge: 'VALIDATION DOCUMENTS', desc: 'Vous recevez alors par email un lien pour uploader vos documents à valider.', side: 'right', illustration: 'doc' },
-  { num: '03', badge: 'PAIEMENT SÉCURISÉ', desc: 'Votre bénéficiaire est contacté pour choisir son mode de paiement sécurisé.', side: 'left', illustration: 'chat' },
-  { num: '04', badge: 'SIGNATURE CONTRAT', desc: 'En cas de validation par notre équipe, votre contrat est généré et envoyé.', side: 'right', illustration: 'check' },
-  { num: '05', badge: 'SUIVI CONTRAT', desc: 'Vous suivez les informations du bénéficiaire et de votre abonnement sur notre application.', side: 'left', illustration: 'app' },
+  { num: '01', badge: 'SOUSCRIPTION EN LIGNE', desc: 'Complétez votre dossier depuis votre téléphone en quelques minutes : informations personnelles, CNI, photo et personnes de confiance à désigner.', side: 'left', illustration: 'form' },
+  { num: '02', badge: 'VÉRIFICATION DOSSIER', desc: 'Notre équipe examine vos documents et valide votre inscription sous 24-48h. Vous êtes notifié par email à chaque étape.', side: 'right', illustration: 'doc' },
+  { num: '03', badge: 'PAIEMENT SÉCURISÉ', desc: 'Réglez votre première cotisation via Wave, Orange Money, MTN Mobile Money ou carte bancaire — paiement mensuel ou annuel.', side: 'left', illustration: 'chat' },
+  { num: '04', badge: 'ACTIVATION CONTRAT', desc: 'Votre contrat est signé électroniquement et activé immédiatement. Vous recevez votre attestation de couverture par email.', side: 'right', illustration: 'check' },
+  { num: '05', badge: 'ESPACE CLIENT 24H/24', desc: 'Suivez vos paiements, gérez vos personnes de confiance et vos membres famille depuis votre espace client sécurisé, partout dans le monde.', side: 'left', illustration: 'app' },
 ];
 
 const coverageRegions = [
@@ -43,40 +44,41 @@ const stats = [
 const plans = [
   {
     name: 'Individuelle',
-    price: '15',
-    priceAnnual: '140',
+    price: '9 500',
+    priceAnnual: '98 000',
     period: '/mois',
-    desc: 'Adulte en bonne santé',
-    features: ['Rapatriement du corps', 'Assistance administrative', 'Support téléphonique', 'Couverture Europe & Afrique', 'Assistance funéraire'],
+    badge: 'Pour 1 personne',
+    desc: 'Couverture complète pour un adulte en bonne santé',
+    features: [
+      'Rapatriement du corps pris en charge',
+      'Assistance administrative complète',
+      'Support WhatsApp 24h/24 — 7j/7',
+      'Couverture 25+ pays (Europe, Afrique...)',
+      'Assistance funéraire locale',
+      'Attestation de couverture digitale',
+      'Espace client sécurisé',
+    ],
     popular: false,
-  },
-  {
-    name: 'Pathologie',
-    price: '30',
-    priceAnnual: '280',
-    period: '/mois',
-    desc: 'Maladies chroniques',
-    features: ['Tout Individuelle +', 'Couverture pathologies', 'Suivi médical', 'Assistance spécialisée'],
-    popular: false,
+    isOption: false,
   },
   {
     name: 'Aldiana Family',
-    price: '50',
-    priceAnnual: '450',
+    price: '29 500',
+    priceAnnual: '295 000',
     period: '/mois',
-    desc: 'Père, mère + 3 enfants max (jusqu\'à 5 pers.)',
-    features: ['Tout Individuelle +', 'Jusqu\'à 5 personnes couvertes', 'Billet d\'avion famille', 'Capital décès', 'Gestionnaire dédié', 'Priority support 24/7'],
+    badge: 'Jusqu\'\u00e0 5 personnes',
+    desc: 'Souscripteur + conjoint(e) + jusqu\'\u00e0 3 enfants',
+    features: [
+      'Tout le plan Individuel inclus',
+      'Jusqu\'\u00e0 5 personnes couvertes',
+      'Billet d\'avion famille en cas de rapatriement',
+      'Capital décès versé à la famille',
+      'Gestionnaire de dossier dédié',
+      'Support prioritaire 24/7 multilangue',
+      'Gestion des membres en ligne',
+    ],
     popular: true,
-  },
-  {
-    name: 'Option Indemnité de Risque',
-    price: '+25',
-    priceAnnual: '+250',
-    period: '/mois',
-    desc: 'Pandémie, guerre, nucléaire',
-    features: ['En complément des formules', 'Couverture pandémie', 'Couverture guerre', 'Risque nucléaire'],
-    popular: false,
-    isOption: true,
+    isOption: false,
   },
 ];
 
@@ -84,23 +86,136 @@ const testimonials = [
   {
     name: 'Fatou Diop',
     location: 'Paris, France',
-    text: 'Aldiana Care nous a accompagnés dans un moment très difficile. Le rapatriement a été géré avec dignité et professionnalisme.',
+    plan: 'Aldiana Family',
+    text: 'Aldiana Care nous a accompagnés dans un moment très difficile. Le rapatriement de mon père a été géré avec dignité, rapidité et beaucoup d\'humanité. Toute la famille est reconnaissante.',
     rating: 5,
     avatar: '/testimonial1.png',
   },
   {
     name: 'Moussa Konaté',
     location: 'Bruxelles, Belgique',
-    text: 'La souscription était simple et rapide. Je suis rassuré de savoir que ma famille est protégée.',
+    plan: 'Individuelle',
+    text: 'La souscription a pris moins de 5 minutes depuis mon téléphone. Le contrat est clair, les prix transparents. Je suis enfin serein de savoir que ma famille est protégée.',
     rating: 5,
     avatar: '/testimonial2.png',
   },
   {
     name: 'Assane Camara',
     location: 'Rome, Italie',
-    text: 'Un service exceptionnel. L\'équipe est disponible 24h/24 et parle nos langues. Merci Aldiana Care.',
+    plan: 'Aldiana Family',
+    text: 'Un service exceptionnel. L\'\u00e9quipe répond en wolof, en bambara et en français. Le contrat a été activé en quelques heures. Je recommande à tous les membres de la diaspora.',
     rating: 5,
     avatar: '/testimonial3.png',
+  },
+];
+
+const faqItems = [
+  {
+    q: "Qu'est-ce qu'une assurance rapatriement ?",
+    a: "C'est une assurance qui prend en charge le transport du corps d'un défunt vers son pays d'origine en cas de décès à l'étranger. Aldiana Care couvre l'ensemble des démarches administratives, le transport, et l'accompagnement de la famille.",
+  },
+  {
+    q: "Qui peut souscrire à Aldiana Care ?",
+    a: "Tout ressortissant d'Afrique de l'Ouest âgé de 18 à 75 ans vivant à l'étranger (Europe, Amérique du Nord, Maghreb, Moyen-Orient). La souscription se fait entièrement en ligne en quelques minutes.",
+  },
+  {
+    q: "La formule Familiale couvre-t-elle toute ma famille ?",
+    a: "Oui. La formule Aldiana Family couvre le souscripteur, son/sa conjoint(e) et jusqu'à 3 enfants mineurs (5 personnes max). Elle inclut un billet d'avion pour 2 membres de la famille, un capital décès et un gestionnaire de dossier dédié.",
+  },
+  {
+    q: "Comment déclarer un décès via la plateforme ?",
+    a: "La personne de confiance désignée lors de votre souscription peut déclarer le décès directement sur notre site. Elle s'identifie via son numéro de téléphone et un code WhatsApp, puis suit un processus guidé étape par étape.",
+  },
+  {
+    q: "Quel est le délai moyen de rapatriement ?",
+    a: "Le délai moyen est de 48 à 72 heures après la déclaration et la réception de tous les documents nécessaires. Notre équipe est disponible 24h/24, 7j/7 pour accélérer chaque démarche.",
+  },
+  {
+    q: "Quels moyens de paiement acceptez-vous ?",
+    a: "Nous acceptons Wave, Orange Money, MTN Mobile Money, Free Money, ainsi que les cartes bancaires Visa et Mastercard. Le paiement peut être mensuel ou annuel (réduction de 15% en annuel).",
+  },
+  {
+    q: "Puis-je modifier ma formule ou mes informations personnelles ?",
+    a: "Oui. Depuis votre espace client vous pouvez mettre à jour vos informations, changer de formule, ajouter des membres famille ou modifier votre personne de confiance à tout moment.",
+  },
+  {
+    q: "Que se passe-t-il si je rate un paiement ?",
+    a: "Vous recevrez un rappel automatique par WhatsApp et email. Après 30 jours d'impayé, votre contrat est suspendu. Vous pouvez le réactiver à tout moment en régularisant votre situation depuis votre espace client.",
+  },
+];
+
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-gray-100 last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-4 text-left group"
+      >
+        <span className="text-sm font-medium text-gray-900 group-hover:text-primary transition-colors pr-4">{q}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={16} className={`flex-shrink-0 transition-colors ${open ? 'text-primary' : 'text-gray-400'}`} />
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' as const }}
+            className="overflow-hidden"
+          >
+            <p className="text-sm text-gray-500 leading-relaxed pb-4 pr-6">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+const whyItems = [
+  {
+    icon: Globe,
+    stat: '25+ pays couverts',
+    title: 'Couverture mondiale',
+    desc: 'Europe, Amérique du Nord, Maghreb et Moyen-Orient — rapatriement vers tous les pays d\'Afrique de l\'Ouest.',
+    accent: false,
+  },
+  {
+    icon: Zap,
+    stat: 'Contrat en 5 min',
+    title: '100% Digital',
+    desc: 'Souscription en ligne, vérification OTP WhatsApp, signature électronique — tout depuis votre smartphone.',
+    accent: true,
+  },
+  {
+    icon: HeadphonesIcon,
+    stat: 'Wolof • Bambara • Français',
+    title: 'Support multilingue',
+    desc: 'Notre équipe parle vos langues et est disponible 24h/24, 7j/7 pour vous accompagner à chaque étape.',
+    accent: false,
+  },
+  {
+    icon: Shield,
+    stat: '48h en moyenne',
+    title: 'Rapatriement rapide',
+    desc: 'Délai record grâce à notre réseau de partenaires funéraires agréés dans plus de 25 pays.',
+    accent: true,
+  },
+  {
+    icon: Users,
+    stat: 'Jusqu\'\u00e0 5 personnes',
+    title: 'Couverture familiale',
+    desc: 'Un seul contrat pour toute la famille — souscripteur, conjoint(e) et jusqu\'\u00e0 3 enfants mineurs.',
+    accent: false,
+  },
+  {
+    icon: CheckCircle,
+    stat: '15 000+ familles',
+    title: 'Confiance éprouvée',
+    desc: 'Noté 4.9/5 par des milliers de membres de la diaspora en Europe, Amérique du Nord et Moyen-Orient.',
+    accent: true,
   },
 ];
 
@@ -115,7 +230,7 @@ export function HomePage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 pt-20 pb-24 lg:pt-28 lg:pb-32 relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -125,7 +240,7 @@ export function HomePage() {
                 <Zap size={14} />
                 Assurance 100% digitale
               </div>
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
                 <span className="font-serif">Votre famille protégée,</span>
                 <br />
                 <span className="text-primary">où que vous soyez.</span>
@@ -184,7 +299,7 @@ export function HomePage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="hidden lg:block"
+              className="hidden md:block"
             >
               <div className="relative">
                 <div
@@ -461,7 +576,7 @@ export function HomePage() {
       </section>
 
       {/* Plans */}
-      <section className="py-20 bg-surface-secondary">
+      <section className="py-12 md:py-20 bg-surface-secondary">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -469,7 +584,7 @@ export function HomePage() {
             viewport={{ once: true }}
             variants={fadeUp}
             custom={0}
-            className="text-center mb-14"
+            className="text-center mb-10 md:mb-14"
           >
             <span className="inline-block px-4 py-1.5 bg-primary-50 text-primary text-sm font-medium rounded-full mb-4">
               Nos formules
@@ -482,7 +597,7 @@ export function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-4">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -494,35 +609,40 @@ export function HomePage() {
               >
                 <Card
                   className={`relative h-full flex flex-col ${
-                    plan.popular ? 'border-2 border-primary shadow-lg shadow-primary/10' : ''
+                    plan.popular
+                      ? 'border-2 border-primary shadow-xl shadow-primary/10'
+                      : 'border border-gray-200'
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-gold text-gray-900 text-xs font-bold px-4 py-1 rounded-full">
-                        Plus populaire
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span className="bg-gold text-gray-900 text-xs font-bold px-5 py-1.5 rounded-full shadow-sm">
+                        ⭐ Plus populaire
                       </span>
                     </div>
                   )}
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                  <div className="mb-5">
+                    <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full mb-3">
+                      {plan.badge}
+                    </span>
+                    <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                     <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
                   </div>
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                      <span className="text-lg font-semibold text-gray-500">€</span>
+                  <div className="mb-6 pb-6 border-b border-gray-100">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-4xl font-extrabold text-gray-900">{plan.price}</span>
+                      <span className="text-sm font-semibold text-gray-500">FCFA</span>
                       <span className="text-gray-400 text-sm">{plan.period}</span>
                     </div>
                     {plan.priceAnnual && (
-                      <p className="text-sm text-gray-400 mt-1">
-                        {plan.priceAnnual}€ /an
+                      <p className="text-xs text-emerald-600 font-medium mt-1.5">
+                        💰 {plan.priceAnnual} FCFA /an — économisez ~15%
                       </p>
                     )}
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-gray-600">
                         <CheckCircle size={16} className="text-primary flex-shrink-0 mt-0.5" />
                         {f}
                       </li>
@@ -532,8 +652,9 @@ export function HomePage() {
                     <Button
                       variant={plan.popular ? 'gold' : 'outline'}
                       fullWidth
+                      size="lg"
                     >
-                      Choisir {plan.name}
+                      Souscrire — {plan.name}
                     </Button>
                   </Link>
                 </Card>
@@ -544,7 +665,7 @@ export function HomePage() {
       </section>
 
       {/* Zones de couverture - World Map Style */}
-      <section className="py-20 bg-gradient-to-br from-primary-dark via-primary to-primary-dark relative overflow-hidden">
+      <section className="py-12 md:py-20 bg-gradient-to-br from-primary-dark via-primary to-primary-dark relative overflow-hidden">
         {/* Decorative globe circles */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full border border-white/5" />
@@ -625,7 +746,7 @@ export function HomePage() {
       </section>
 
       {/* Pourquoi Aldiana Care */}
-      <section className="py-20 bg-surface-secondary">
+      <section className="py-12 md:py-20 bg-surface-secondary">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -641,15 +762,13 @@ export function HomePage() {
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
               Pourquoi Aldiana Care ?
             </h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              La seule plateforme digitale dédiée à la diaspora ouest-africaine, conçue pour simplifier la protection de votre famille où que vous soyez.
+            </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { icon: Globe, title: 'Couverture mondiale', desc: 'Europe, Amérique du Nord, Maghreb, Moyen-Orient vers l\'Afrique de l\'Ouest' },
-              { icon: Zap, title: '100% Digital', desc: 'Souscription en ligne, signature digitale, contrat généré instantanément' },
-              { icon: HeadphonesIcon, title: 'Support 24/7', desc: 'Assistance en français, wolof, bambara et langues ouest-africaines' },
-              { icon: Camera, title: 'Onboarding simple', desc: 'Photo, pièce d\'identité et signature depuis votre téléphone' },
-            ].map((item, i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {whyItems.map((item, i) => (
               <motion.div
                 key={item.title}
                 custom={i + 1}
@@ -658,12 +777,19 @@ export function HomePage() {
                 viewport={{ once: true }}
                 variants={fadeUp}
               >
-                <Card hover className="text-center h-full">
-                  <div className="w-12 h-12 mx-auto mb-4 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <item.icon size={22} className="text-primary" />
+                <Card hover className="h-full">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 flex-shrink-0 rounded-xl flex items-center justify-center ${
+                      item.accent ? 'bg-gold/15' : 'bg-primary/10'
+                    }`}>
+                      <item.icon size={22} className={item.accent ? 'text-gold-dark' : 'text-primary'} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[11px] font-bold tracking-wider uppercase text-primary/60 mb-1">{item.stat}</p>
+                      <h3 className="font-bold text-gray-900 mb-1.5">{item.title}</h3>
+                      <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-500">{item.desc}</p>
                 </Card>
               </motion.div>
             ))}
@@ -672,7 +798,7 @@ export function HomePage() {
       </section>
 
       {/* Témoignages */}
-      <section className="py-20 bg-surface-secondary">
+      <section className="py-12 md:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -688,6 +814,13 @@ export function HomePage() {
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
               Ce que disent nos clients
             </h2>
+            <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+              <div className="flex items-center gap-0.5">
+                {[1,2,3,4,5].map(j => <Star key={j} size={15} className="text-gold fill-gold" />)}
+              </div>
+              <span className="font-bold text-gray-900 text-sm">4.9/5</span>
+              <span className="text-gray-400 text-sm">· Noté par +2 000 familles de la diaspora</span>
+            </div>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -700,21 +833,38 @@ export function HomePage() {
                 viewport={{ once: true }}
                 variants={fadeUp}
               >
-                <Card className="h-full">
-                  <div className="flex items-center gap-1 mb-4">
-                    {Array.from({ length: t.rating }).map((_, j) => (
-                      <Star key={j} size={14} className="text-gold fill-gold" />
-                    ))}
+                <Card className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: t.rating }).map((_, j) => (
+                        <Star key={j} size={13} className="text-gold fill-gold" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] bg-primary/10 text-primary font-bold px-2.5 py-1 rounded-full">
+                      {t.plan}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-6">"{t.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={t.avatar} 
-                      alt={t.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
-                    />
+                  <div className="relative flex-1 mb-5">
+                    <span className="text-6xl leading-none text-primary/8 font-serif absolute -top-3 -left-1 select-none">“</span>
+                    <p className="text-sm text-gray-600 leading-relaxed pt-5 relative z-10">{t.text}</p>
+                  </div>
+                  <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm absolute inset-0">
+                        {t.name.charAt(0)}
+                      </div>
+                      <img
+                        src={t.avatar}
+                        alt=""
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 absolute inset-0"
+                      />
+                    </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                      <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                        {t.name}
+                        <CheckCircle size={12} className="text-primary" />
+                      </p>
                       <p className="text-xs text-gray-400">{t.location}</p>
                     </div>
                   </div>
@@ -725,8 +875,53 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="py-12 md:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 md:mb-14">
+            <span className="inline-block px-4 py-1.5 bg-primary-50 text-primary text-sm font-medium rounded-full mb-4">FAQ</span>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Questions fréquentes</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">Tout ce que vous devez savoir avant de souscrire à Aldiana Care.</p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 max-w-5xl mx-auto items-start">
+            {/* Left */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="lg:col-span-2 space-y-4">
+              <div className="bg-gradient-to-br from-primary-50 to-gold/10 rounded-2xl p-6 border border-primary/10">
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                  <MessageCircle size={22} className="text-primary" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">Vous ne trouvez pas votre réponse ?</h3>
+                <p className="text-sm text-gray-500 mb-5">Notre équipe parle français, wolof, bambara et d'autres langues ouest-africaines. Nous sommes là pour vous.</p>
+                <div className="flex flex-col gap-2">
+                  <Link to="/faq">
+                    <Button variant="primary" size="sm" fullWidth>Voir toutes les FAQ</Button>
+                  </Link>
+                  <Link to="/contact">
+                    <Button variant="outline" size="sm" fullWidth>Nous contacter</Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-success/5 border border-success/20 rounded-xl">
+                <CheckCircle size={18} className="text-success flex-shrink-0" />
+                <p className="text-xs text-gray-600">Assistance disponible <span className="font-semibold text-gray-800">24h/24 • 7j/7</span> en plusieurs langues</p>
+              </div>
+            </motion.div>
+
+            {/* Right: accordion */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={2} className="lg:col-span-3">
+              <Card>
+                {faqItems.map((item, i) => (
+                  <FAQItem key={i} q={item.q} a={item.a} />
+                ))}
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-20 bg-primary relative overflow-hidden">
+      <section className="py-12 md:py-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold/10 rounded-full blur-3xl" />

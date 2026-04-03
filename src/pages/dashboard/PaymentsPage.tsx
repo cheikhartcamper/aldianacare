@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CreditCard, History, Info, Loader2, Shield, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CreditCard, Download, History, Info, Loader2, Shield, XCircle } from 'lucide-react';
 import { Button, Card, Badge, SkeletonCard, SkeletonList } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionService, type MySubscriptionResponse, type Payment, type PaymentHistoryResponse } from '@/services/subscription.service';
@@ -62,6 +62,7 @@ export function PaymentsPage() {
 
   const [installmentLoading, setInstallmentLoading] = useState(false);
   const [installmentError, setInstallmentError] = useState('');
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
 
   const fetchSubscription = async (isRefresh = false) => {
     if (isRefresh) {
@@ -73,11 +74,19 @@ export function PaymentsPage() {
 
     try {
       const response = await subscriptionService.getMySubscription();
-      setSubscriptionData(response.data);
-      setNoActiveSubscription(false);
+      if (response.success && response.data?.userSubscription) {
+        setSubscriptionData(response.data);
+        setNoActiveSubscription(false);
+      } else {
+        setNoActiveSubscription(true);
+        setSubscriptionData(null);
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
       if (status === 404 || status === 500) {
+        setNoActiveSubscription(true);
+        setSubscriptionData(null);
+      } else if (status === 401 || status === 403) {
         setNoActiveSubscription(true);
         setSubscriptionData(null);
       } else {
@@ -99,6 +108,22 @@ export function PaymentsPage() {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const handleDownloadReceipt = async (paymentId: string) => {
+    setDownloadingReceipt(paymentId);
+    try {
+      const blob = await subscriptionService.downloadReceipt(paymentId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recu-paiement-${paymentId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* silent */ }
+    setDownloadingReceipt(null);
   };
 
   const handlePayInstallment = async () => {
@@ -371,7 +396,7 @@ export function PaymentsPage() {
 
         {historyLoading ? (
           <SkeletonList rows={5} />
-        ) : !historyData || historyData.payments.length === 0 ? (
+        ) : !historyData || !historyData.payments?.length ? (
           <div className="flex items-center gap-3 p-6 text-gray-500">
             <Info size={16} className="flex-shrink-0" />
             <p className="text-sm">Aucun paiement enregistré pour le moment.</p>
@@ -410,16 +435,28 @@ export function PaymentsPage() {
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="text-sm font-semibold text-gray-900">{formatAmount(payment.amount)}</span>
                       <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
+                      {payment.status === 'completed' && (
+                        <button
+                          onClick={() => void handleDownloadReceipt(payment.id)}
+                          disabled={downloadingReceipt === payment.id}
+                          title="Télécharger le reçu"
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary transition-colors disabled:opacity-40"
+                        >
+                          {downloadingReceipt === payment.id
+                            ? <Loader2 size={13} className="animate-spin" />
+                            : <Download size={13} />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {historyData.pagination.totalPages > 1 && (
+            {(historyData.pagination?.totalPages ?? 0) > 1 && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
                 <span className="text-xs text-gray-400">
-                  Page {historyData.pagination.page} / {historyData.pagination.totalPages}
+                  Page {historyData.pagination?.page ?? 1} / {historyData.pagination?.totalPages ?? 1}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -431,7 +468,7 @@ export function PaymentsPage() {
                   </button>
                   <button
                     onClick={() => { const p = historyPage + 1; setHistoryPage(p); void fetchHistory(p); }}
-                    disabled={historyPage >= historyData.pagination.totalPages || historyLoading}
+                    disabled={historyPage >= (historyData.pagination?.totalPages ?? 1) || historyLoading}
                     className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
                   >
                     <ChevronRight size={14} />

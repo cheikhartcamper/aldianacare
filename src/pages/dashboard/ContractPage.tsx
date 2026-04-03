@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, FileText, Calendar, CheckCircle, Globe, User, MapPin, Phone, Mail, Clock, Users, Download, Hash } from 'lucide-react';
+import { Shield, FileText, Calendar, CheckCircle, Globe, User, MapPin, Phone, Mail, Clock, Users, Download, Hash, Loader2, FileDown } from 'lucide-react';
 import { Card, Badge, SkeletonCard } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionService, type MySubscriptionResponse } from '@/services/subscription.service';
@@ -31,6 +31,9 @@ export function ContractPage() {
   const [subscription, setSubscription] = useState<MySubscriptionResponse | null>(null);
   const [subLoading, setSubLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [contributionCalls, setContributionCalls] = useState<{ id: string; amount: number; dueDate: string; periodLabel: string; documentUrl: string | null }[]>([]);
+  const [callsLoading, setCallsLoading] = useState(false);
+  const [downloadingCall, setDownloadingCall] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.registrationStatus === 'approved') {
@@ -39,6 +42,11 @@ export function ContractPage() {
         .then(res => { if (res.success) setSubscription(res.data); })
         .catch(() => {})
         .finally(() => setSubLoading(false));
+      setCallsLoading(true);
+      subscriptionService.getContributionCalls()
+        .then(res => { if (res.success) setContributionCalls(res.data.calls); })
+        .catch(() => {})
+        .finally(() => setCallsLoading(false));
     }
   }, [user]);
 
@@ -50,10 +58,29 @@ export function ContractPage() {
       const a = document.createElement('a');
       a.href = url;
       a.download = `attestation-aldiana-${subscription?.userSubscription?.subscriptionNumber ?? 'care'}.pdf`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch { /* ignore */ } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleDownloadCall = async (callId: string) => {
+    setDownloadingCall(callId);
+    try {
+      const blob = await subscriptionService.downloadContributionCall(callId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `appel-cotisation-${callId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ } finally {
+      setDownloadingCall(null);
     }
   };
 
@@ -240,40 +267,89 @@ export function ContractPage() {
         )}
 
         {/* Documents du contrat */}
-        {user?.planType !== 'family' && (
-          <Card>
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText size={16} className="text-primary" /> Documents du contrat
-            </h3>
-            {user?.registrationStatus === 'approved' ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-secondary">
-                  <div className="flex items-center gap-3">
-                    <FileText size={16} className="text-primary flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Attestation de couverture</p>
-                      <p className="text-xs text-gray-400">PDF officiel avec QR code de vérification</p>
-                    </div>
+        <Card>
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText size={16} className="text-primary" /> Documents du contrat
+          </h3>
+          {user?.registrationStatus === 'approved' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-secondary">
+                <div className="flex items-center gap-3">
+                  <FileText size={16} className="text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Attestation de couverture</p>
+                    <p className="text-xs text-gray-400">PDF officiel avec QR code de vérification</p>
                   </div>
-                  <button
-                    onClick={handleDownloadAttestation}
-                    disabled={downloading}
-                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-dark disabled:opacity-50 transition-colors"
-                  >
-                    <Download size={14} />
-                    {downloading ? 'Téléchargement…' : 'Télécharger'}
-                  </button>
                 </div>
+                <button
+                  onClick={handleDownloadAttestation}
+                  disabled={downloading}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-dark disabled:opacity-50 transition-colors"
+                >
+                  {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  {downloading ? 'Téléchargement…' : 'Télécharger'}
+                </button>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <Clock size={28} className="text-gray-200 mb-2" />
-                <p className="text-sm text-gray-400">Documents disponibles après approbation</p>
-              </div>
-            )}
-          </Card>
-        )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <Clock size={28} className="text-gray-200 mb-2" />
+              <p className="text-sm text-gray-400">Documents disponibles après approbation</p>
+            </div>
+          )}
+        </Card>
       </div>
+
+      {/* Appels de cotisation */}
+      {user?.registrationStatus === 'approved' && (
+        <Card padding="none">
+          <div className="p-5 border-b border-gray-100 flex items-center gap-2">
+            <FileDown size={16} className="text-gray-400" />
+            <h3 className="font-semibold text-gray-900">Appels de cotisation</h3>
+          </div>
+          {callsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-primary/40" />
+            </div>
+          ) : contributionCalls.length === 0 ? (
+            <div className="flex items-center gap-3 p-6 text-gray-400">
+              <FileDown size={16} className="flex-shrink-0" />
+              <p className="text-sm">Aucun appel de cotisation disponible.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {contributionCalls.map((call) => (
+                <div key={call.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{call.periodLabel}</p>
+                    <p className="text-xs text-gray-400">
+                      Échéance : {new Date(call.dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('fr-FR').format(call.amount)} FCFA
+                    </span>
+                    {call.documentUrl && (
+                      <button
+                        onClick={() => void handleDownloadCall(call.id)}
+                        disabled={downloadingCall === call.id}
+                        title="Télécharger l'appel"
+                        className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-dark disabled:opacity-50 transition-colors"
+                      >
+                        {downloadingCall === call.id
+                          ? <Loader2 size={13} className="animate-spin" />
+                          : <Download size={13} />}
+                        PDF
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Rejet info */}
       {user?.registrationStatus === 'rejected' && user.rejectionReason && (

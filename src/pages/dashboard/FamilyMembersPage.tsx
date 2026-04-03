@@ -8,6 +8,7 @@ import { authService } from '@/services/auth.service';
 type MemberDraft = {
   firstName: string;
   lastName: string;
+  relation: string;
   dateOfBirth: string;
   phone: string;
   email: string;
@@ -21,7 +22,7 @@ type MemberDraft = {
 };
 
 const emptyMember = (): MemberDraft => ({
-  firstName: '', lastName: '', dateOfBirth: '', phone: '', email: '', password: '',
+  firstName: '', lastName: '', relation: '', dateOfBirth: '', phone: '', email: '', password: '',
   residenceCountry: '', residenceAddress: '', repatriationCountry: '',
   cniRecto: null, cniVerso: null, photo: null,
 });
@@ -86,6 +87,7 @@ export function FamilyMembersPage() {
       const payload = members.map(m => ({
         firstName: m.firstName,
         lastName: m.lastName,
+        relation: m.relation || undefined,
         dateOfBirth: m.dateOfBirth,
         phone: m.phone,
         email: m.email || undefined,
@@ -188,6 +190,24 @@ export function FamilyMembersPage() {
                     <div className="grid sm:grid-cols-2 gap-3">
                       <Input label="Prénom *" value={m.firstName} onChange={e => updateMember(i, 'firstName', e.target.value)} placeholder="Prénom" />
                       <Input label="Nom *" value={m.lastName} onChange={e => updateMember(i, 'lastName', e.target.value)} placeholder="Nom" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Relation</label>
+                      <select value={m.relation} onChange={e => updateMember(i, 'relation', e.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white">
+                        <option value="">Sélectionnez (optionnel)</option>
+                        <option value="conjoint">Conjoint(e)</option>
+                        <option value="fils">Fils</option>
+                        <option value="fille">Fille</option>
+                        <option value="pere">Père</option>
+                        <option value="mere">Mère</option>
+                        <option value="frere">Frère</option>
+                        <option value="soeur">Sœur</option>
+                        <option value="oncle">Oncle</option>
+                        <option value="tante">Tante</option>
+                        <option value="autre">Autre</option>
+                      </select>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3">
                       <Input label="Date de naissance *" type="date" value={m.dateOfBirth} onChange={e => updateMember(i, 'dateOfBirth', e.target.value)} />
                       <Input label="Téléphone *" type="tel" value={m.phone} onChange={e => updateMember(i, 'phone', e.target.value)} placeholder="+221..." />
                       <Input label="Email" type="email" value={m.email} onChange={e => updateMember(i, 'email', e.target.value)} placeholder="optionnel" />

@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import {
   Search, CheckCircle, XCircle, Eye, User, Phone,
   MapPin, Calendar, Users, FileText, AlertCircle,
-  ChevronLeft, ChevronRight, RefreshCw, UserCheck, UserX
+  ChevronLeft, ChevronRight, RefreshCw, UserCheck, UserX, Trash2, CreditCard, Clock
 } from 'lucide-react';
 import { Card, Badge, Button, Input, DocImage, PageLoader, BrandSpinner } from '@/components/ui';
-import { adminService, type UserWithTrusted } from '@/services/admin.service';
+import { adminService, type UserWithTrusted, type AdminPayment } from '@/services/admin.service';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type PlanFilter = 'all' | 'individual' | 'family';
@@ -41,10 +41,15 @@ export function AdminUsersPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [pendingUserToReject, setPendingUserToReject] = useState<UserWithTrusted | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserWithTrusted | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [statsTotal, setStatsTotal] = useState(0);
   const [statsPending, setStatsPending] = useState(0);
   const [statsApproved, setStatsApproved] = useState(0);
   const [statsRejected, setStatsRejected] = useState(0);
+  const [userPayments, setUserPayments] = useState<AdminPayment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
 
   const fetchUsers = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -95,11 +100,17 @@ export function AdminUsersPage() {
 
   const handleViewUser = async (userId: string) => {
     setLoadingUserId(userId);
+    setUserPayments([]);
     try {
       const res = await adminService.getUserById(userId);
       if (res.success) {
         setSelectedUser(res.data as UserWithTrusted);
         setShowModal(true);
+        setLoadingPayments(true);
+        adminService.getUserPayments(userId, { limit: 10 })
+          .then(r => { if (r.success) setUserPayments(r.data.payments ?? []); })
+          .catch(() => {})
+          .finally(() => setLoadingPayments(false));
       }
     } catch { /* ignore */ }
     setLoadingUserId(null);
@@ -119,6 +130,28 @@ export function AdminUsersPage() {
       }
     } catch { /* ignore */ }
     setActionLoadingId(null);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteConfirmUser) return;
+    setDeleteLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await adminService.deleteUser(deleteConfirmUser.id);
+      if (res.success) {
+        setSuccessMsg(`Utilisateur ${deleteConfirmUser.firstName} ${deleteConfirmUser.lastName} supprimé définitivement.`);
+        setTimeout(() => setSuccessMsg(''), 4000);
+        setDeleteConfirmUser(null);
+        fetchUsers(false);
+        fetchStats();
+      } else {
+        setErrorMsg(res.message || 'Erreur lors de la suppression.');
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setErrorMsg(e.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+    setDeleteLoading(false);
   };
 
   const handleReject = async () => {
@@ -188,6 +221,13 @@ export function AdminUsersPage() {
           className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm">
           <CheckCircle size={16} className="text-green-600 shrink-0" />
           {successMsg}
+        </motion.div>
+      )}
+      {errorMsg && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
+          <XCircle size={16} className="text-red-500 shrink-0" />
+          {errorMsg}
         </motion.div>
       )}
 
@@ -371,6 +411,13 @@ export function AdminUsersPage() {
                           className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
                         >
                           {loadingUserId === u.id ? <BrandSpinner size={15} /> : <Eye size={15} />}
+                        </button>
+                        <button
+                          onClick={() => { setErrorMsg(''); setDeleteConfirmUser(u); }}
+                          title="Supprimer définitivement"
+                          className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
@@ -573,6 +620,38 @@ export function AdminUsersPage() {
                 </div>
               )}
 
+              {/* Payment History */}
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <CreditCard size={13} className="text-primary" /> Historique des paiements
+                </h3>
+                {loadingPayments ? (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
+                    <Clock size={13} className="animate-spin" /> Chargement...
+                  </div>
+                ) : userPayments.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Aucun paiement enregistré.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {userPayments.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{p.amount.toLocaleString('fr-FR')} XOF</p>
+                          <p className="text-xs text-gray-400">Cotisation #{p.paymentNumber} · {p.paidAt ? new Date(p.paidAt).toLocaleDateString('fr-FR') : new Date(p.createdAt).toLocaleDateString('fr-FR')}</p>
+                        </div>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          p.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          p.status === 'failed' ? 'bg-red-100 text-red-600' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {p.status === 'completed' ? 'Payé' : p.status === 'failed' ? 'Échoué' : 'En attente'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Rejection reason */}
               {selectedUser.registrationStatus === 'rejected' && selectedUser.rejectionReason && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -604,6 +683,59 @@ export function AdminUsersPage() {
                   </Button>
                 </div>
               )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {deleteConfirmUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                <Trash2 size={20} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Supprimer l'utilisateur</h3>
+                <p className="text-xs text-gray-400">Action irréversible</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              Vous êtes sur le point de supprimer définitivement :
+            </p>
+            <div className="p-3 bg-red-50 rounded-xl border border-red-100 mb-4">
+              <p className="text-sm font-semibold text-gray-900">{deleteConfirmUser.firstName} {deleteConfirmUser.lastName}</p>
+              <p className="text-xs text-gray-500">{deleteConfirmUser.email}</p>
+            </div>
+            <p className="text-xs text-red-600 mb-4">
+              ⚠️ Toutes les données associées (paiements, abonnements, personnes de confiance, membres de famille) seront supprimées.
+            </p>
+            {errorMsg && (
+              <p className="text-xs text-red-600 mb-3 p-2 bg-red-50 rounded-lg">{errorMsg}</p>
+            )}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                fullWidth
+                onClick={() => { setDeleteConfirmUser(null); setErrorMsg(''); }}
+                disabled={deleteLoading}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="danger"
+                fullWidth
+                icon={deleteLoading ? <BrandSpinner size={14} /> : <Trash2 size={14} />}
+                onClick={handleDeleteUser}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Suppression...' : 'Supprimer définitivement'}
+              </Button>
             </div>
           </motion.div>
         </div>

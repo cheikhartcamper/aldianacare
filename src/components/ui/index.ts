@@ -10,3 +10,4 @@ export { DocImage } from './DocImage';
 export { PageLoader } from './PageLoader';
 export { BrandSpinner } from './BrandSpinner';
 export { Skeleton, SkeletonCard, SkeletonTable, SkeletonList, SkeletonRow } from './Skeleton';
+export { PhoneInput } from './PhoneInput';

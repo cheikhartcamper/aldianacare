@@ -215,6 +215,35 @@ export interface AdminPaymentsResponse {
   };
 }
 
+export interface PaymentsDashboard {
+  totalCollected: number;
+  paymentsCompleted: number;
+  paymentsPending: number;
+  paymentsFailed: number;
+  paymentsTotal: number;
+}
+
+export interface UpcomingDue {
+  nextDueDate: string;
+  daysUntilDue: number;
+  dueAmount: number;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  subscription: {
+    planType: string;
+    memberCount: number;
+  };
+}
+
+export interface UpcomingDuesResponse {
+  dues: UpcomingDue[];
+}
+
 export interface AdminReferral {
   id: string;
   referrerId: string;
@@ -369,6 +398,18 @@ export const adminService = {
     return data;
   },
 
+  /** DELETE /api/admin/country-managers/:id */
+  async deleteCountryManager(id: string): Promise<ApiResponse<{ id: string; email: string }>> {
+    const { data } = await api.delete<ApiResponse<{ id: string; email: string }>>(`/admin/country-managers/${id}`);
+    return data;
+  },
+
+  /** DELETE /api/admin/users/:id */
+  async deleteUser(id: string): Promise<ApiResponse<{ id: string; email: string }>> {
+    const { data } = await api.delete<ApiResponse<{ id: string; email: string }>>(`/admin/users/${id}`);
+    return data;
+  },
+
   // ===== Health Declarations =====
 
   /** GET /api/admin/health-declarations */
@@ -405,19 +446,29 @@ export const adminService = {
     return data;
   },
 
-  // ===== Analytics =====
+  // ===== Payments (admin supervision) =====
 
-  /** GET /api/admin/analytics */
-  async getAnalytics(): Promise<ApiResponse<AdminAnalytics>> {
-    const { data } = await api.get<ApiResponse<AdminAnalytics>>('/admin/analytics');
+  /** GET /api/admin/payments/dashboard */
+  async getPaymentsDashboard(params?: { from?: string; to?: string }): Promise<ApiResponse<PaymentsDashboard>> {
+    const { data } = await api.get<ApiResponse<PaymentsDashboard>>('/admin/payments/dashboard', { params });
     return data;
   },
-
-  // ===== Payments (admin supervision) =====
 
   /** GET /api/admin/payments */
   async getPayments(params?: { status?: string; page?: number; limit?: number; userId?: string }): Promise<ApiResponse<AdminPaymentsResponse>> {
     const { data } = await api.get<ApiResponse<AdminPaymentsResponse>>('/admin/payments', { params });
+    return data;
+  },
+
+  /** GET /api/admin/payments/upcoming-dues */
+  async getUpcomingDues(params?: { days?: number; status?: string }): Promise<ApiResponse<UpcomingDuesResponse>> {
+    const { data } = await api.get<ApiResponse<UpcomingDuesResponse>>('/admin/payments/upcoming-dues', { params });
+    return data;
+  },
+
+  /** GET /api/admin/users/:id/payments */
+  async getUserPayments(userId: string, params?: { page?: number; limit?: number }): Promise<ApiResponse<AdminPaymentsResponse>> {
+    const { data } = await api.get<ApiResponse<AdminPaymentsResponse>>(`/admin/users/${userId}/payments`, { params });
     return data;
   },
 
