@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: #0a2e1a;
+    }
+    .wrap {
+      width: 1200px;
+      height: 630px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 56px 80px 72px 80px;
+      background: linear-gradient(135deg, #082516 0%, #0f3d22 45%, #165230 100%);
+      overflow: hidden;
+    }
+
+    /* Gold top bar */
+    .topbar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #b8891e, #f0c040, #e8b830, #f0c040, #b8891e);
+    }
+
+    /* Decorative circles */
+    .deco1 {
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200,160,40,0.12) 0%, transparent 70%);
+    }
+    .deco2 {
+      position: absolute;
+      bottom: -160px; left: -80px;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+    }
+    .deco3 {
+      position: absolute;
+      top: 50%; right: 80px;
+      transform: translateY(-50%);
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200,160,40,0.06) 0%, transparent 70%);
+    }
+
+    /* Grid lines */
+    .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    .content { position: relative; z-index: 2; }
+
+    /* Logo / brand badge */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .brand-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #c8a028, #f0c040);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    .brand-name {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .brand-name span { color: #f0c040; }
+    .brand-tag {
+      margin-left: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(200,160,40,0.15);
+      border: 1px solid rgba(200,160,40,0.35);
+      border-radius: 30px;
+      padding: 7px 16px;
+      color: #f0c040;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #f0c040;
+    }
+
+    /* Headline */
+    h1 {
+      font-size: 62px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.08;
+      margin-bottom: 18px;
+      letter-spacing: -2px;
+    }
+    h1 em {
+      font-style: normal;
+      color: #f0c040;
+    }
+
+    /* Subtitle */
+    .subtitle {
+      font-size: 20px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.55;
+      max-width: 640px;
+      margin-bottom: 36px;
+      font-weight: 400;
+    }
+
+    /* Feature pills */
+    .pills {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50px;
+      padding: 9px 18px;
+      color: rgba(255,255,255,0.85);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .pill-icon { font-size: 16px; }
+
+    /* Right side visual */
+    .right-panel {
+      position: absolute;
+      right: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 18px 24px;
+      text-align: center;
+      min-width: 150px;
+    }
+    .stat-card .num {
+      font-size: 36px;
+      font-weight: 800;
+      color: #f0c040;
+      display: block;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .shield-box {
+      background: linear-gradient(135deg, rgba(200,160,40,0.2), rgba(200,160,40,0.08));
+      border: 1px solid rgba(200,160,40,0.3);
+      border-radius: 16px;
+      padding: 18px 24px;
+      text-align: center;
+      min-width: 150px;
+    }
+    .shield-box .icon { font-size: 40px; display: block; margin-bottom: 6px; }
+    .shield-box .text { font-size: 13px; color: #f0c040; font-weight: 600; }
+
+    /* Bottom bar */
+    .bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      padding: 0 80px;
+      justify-content: space-between;
+      z-index: 3;
+    }
+    .domain {
+      color: rgba(255,255,255,0.4);
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .domain strong { color: rgba(255,255,255,0.65); }
+    .bottom-badges { display: flex; gap: 28px; }
+    .bottom-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.45);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .check {
+      width: 16px; height: 16px;
+      background: rgba(200,160,40,0.3);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 9px;
+      color: #f0c040;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar"></div>
+    <div class="grid"></div>
+    <div class="deco1"></div>
+    <div class="deco2"></div>
+    <div class="deco3"></div>
+
+    <div class="content">
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">🕊️</div>
+        <div>
+          <div class="brand-name">Aldiana <span>Care</span></div>
+          <span class="brand-tag">Assurance Rapatriement</span>
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="badge">
+        <div class="badge-dot"></div>
+        Pour la diaspora ouest-africaine
+      </div>
+
+      <!-- Headline -->
+      <h1>Protégez votre famille<br>où que vous soyez <em>dans</em><br><em>le monde</em></h1>
+
+      <!-- Subtitle -->
+      <p class="subtitle">Assurance rapatriement & assistance funéraire<br>100% digitale · Souscription en quelques minutes</p>
+
+      <!-- Pills -->
+      <div class="pills">
+        <div class="pill"><span class="pill-icon">🌍</span> Couverture mondiale</div>
+        <div class="pill"><span class="pill-icon">📱</span> 100% digital</div>
+        <div class="pill"><span class="pill-icon">👨‍👩‍👧</span> Plan familial</div>
+        <div class="pill"><span class="pill-icon">⚡</span> Activation immédiate</div>
+      </div>
+    </div>
+
+    <!-- Right panel stats -->
+    <div class="right-panel">
+      <div class="shield-box">
+        <span class="icon">🛡️</span>
+        <div class="text">Certifié ISO 27001</div>
+      </div>
+      <div class="stat-card">
+        <span class="num">+2 000</span>
+        <span class="label">familles protégées</span>
+      </div>
+      <div class="stat-card">
+        <span class="num">4.9/5</span>
+        <span class="label">satisfaction client</span>
+      </div>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom">
+      <span class="domain">🌐 <strong>aldianacare.com</strong></span>
+      <div class="bottom-badges">
+        <div class="bottom-badge"><span class="check">✓</span> PayTech sécurisé</div>
+        <div class="bottom-badge"><span class="check">✓</span> Données chiffrées</div>
+        <div class="bottom-badge"><span class="check">✓</span> Support 24/7</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

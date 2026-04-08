@@ -72,7 +72,7 @@ export function DashboardOffersPage() {
   const currentPlanType: SubscriptionPlanType = user?.planType || 'individual';
 
   const [plans, setPlans] = useState<DisplayPlan[]>([]);
-  const [selectedDuration, setSelectedDuration] = useState<SubscriptionDuration>('yearly');
+  const [selectedDuration, setSelectedDuration] = useState<SubscriptionDuration>('monthly');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -159,6 +159,7 @@ export function DashboardOffersPage() {
       const response = await subscriptionService.subscribe(selectedPlan.id);
       const paymentUrl = response.data.payment?.paymentUrl;
       if (paymentUrl) { window.location.href = paymentUrl; return; }
+      setError('Lien de paiement introuvable. Contactez le support.');
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Impossible d\'initier le paiement. Réessayez dans un instant.'));
     } finally {

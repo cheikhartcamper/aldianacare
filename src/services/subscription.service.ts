@@ -129,6 +129,15 @@ export interface PayInstallmentResponse {
   paymentUrl: string;
 }
 
+export interface PaymentStatusResponse {
+  reference: string;
+  status: 'pending' | 'completed' | 'failed';
+  amount?: number;
+  paidAt?: string | null;
+  subscriptionStatus?: string;
+  planType?: string;
+}
+
 export const subscriptionService = {
   /** GET /api/subscription/plans */
   async getPlans(): Promise<ApiResponse<SubscriptionPlansResponse>> {
@@ -192,6 +201,12 @@ export const subscriptionService = {
   /** GET /api/subscription/contribution-calls/:id/download — télécharger un appel de cotisation PDF */
   async downloadContributionCall(callId: string): Promise<Blob> {
     const { data } = await api.get(`/subscription/contribution-calls/${callId}/download`, { responseType: 'blob' });
+    return data;
+  },
+
+  /** GET /api/subscription/payment-status/:reference — vérifier le statut d'un paiement PayTech */
+  async getPaymentStatus(reference: string): Promise<ApiResponse<PaymentStatusResponse>> {
+    const { data } = await api.get<ApiResponse<PaymentStatusResponse>>(`/subscription/payment-status/${reference}`);
     return data;
   },
 };

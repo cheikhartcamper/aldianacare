@@ -18,6 +18,7 @@ const ContactPage = lazy(() => import('@/pages/public/ContactPage').then(m => ({
 const SponsorshipPage = lazy(() => import('@/pages/public/SponsorshipPage').then(m => ({ default: m.SponsorshipPage })));
 const SubscriptionSuccessPage = lazy(() => import('@/pages/subscription/SubscriptionSuccessPage').then(m => ({ default: m.SubscriptionSuccessPage })));
 const SubscriptionCancelPage = lazy(() => import('@/pages/subscription/SubscriptionCancelPage').then(m => ({ default: m.SubscriptionCancelPage })));
+const PaymentSuccessPage = lazy(() => import('@/pages/payment/PaymentSuccessPage').then(m => ({ default: m.PaymentSuccessPage })));
 
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const OnboardingPage = lazy(() => import('@/pages/public/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
@@ -75,6 +76,7 @@ function App() {
           {/* PayTech callback pages — standalone (no navbar/footer) */}
           <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
           <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
 
           {/* Auth pages (standalone layouts) */}
           <Route path="/connexion" element={<LoginPage />} />

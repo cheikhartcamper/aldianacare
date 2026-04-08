@@ -328,7 +328,7 @@ export function AdminLayout() {
                       </Link>
                       <div className="mx-3 my-1 border-t border-gray-100" />
                       <button
-                        onClick={() => { setProfileOpen(false); logout(); }}
+                        onClick={() => { setProfileOpen(false); logout(); navigate('/'); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <LogOut size={14} className="text-red-400" /> Déconnexion

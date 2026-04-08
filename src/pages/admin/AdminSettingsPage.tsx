@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, CheckCircle, Globe, Plus, Edit2, Trash2, Loader2,
-  MapPin, Plane, Users, Phone, Mail, ShieldCheck, ToggleLeft, ToggleRight
+  MapPin, Plane, Users, Phone, Mail, ShieldCheck, ToggleLeft, ToggleRight,
+  Heart, RefreshCw
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Modal, PageLoader, BrandSpinner } from '@/components/ui';
 import {
@@ -12,7 +13,7 @@ import {
   type CountryManager
 } from '@/services/admin.service';
 
-type SettingsTab = 'general' | 'countries' | 'managers';
+type SettingsTab = 'general' | 'countries' | 'managers' | 'relations';
 
 export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -23,7 +24,6 @@ export function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [maxTrusted, setMaxTrusted] = useState(3);
-  const [allowedRelations, setAllowedRelations] = useState('');
   const [minFamilyMembers, setMinFamilyMembers] = useState(2);
   const [familyDiscountPercent, setFamilyDiscountPercent] = useState(15);
   const [eligibilityMonths, setEligibilityMonths] = useState(6);
@@ -39,6 +39,17 @@ export function AdminSettingsPage() {
   const [countryError, setCountryError] = useState<string | null>(null);
   const [countryDeleting, setCountryDeleting] = useState<string | null>(null);
   const [countryTypeFilter, setCountryTypeFilter] = useState<'all' | 'residence' | 'repatriation'>('all');
+
+  // --- Relations (trusted persons) ---
+  const [relations, setRelations] = useState<string[]>([]);
+  const [relationsLoading, setRelationsLoading] = useState(false);
+  const [addRelationValue, setAddRelationValue] = useState('');
+  const [addRelationSaving, setAddRelationSaving] = useState(false);
+  const [addRelationError, setAddRelationError] = useState<string | null>(null);
+  const [renameModal, setRenameModal] = useState<{ old: string; newVal: string } | null>(null);
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [deletingRelation, setDeletingRelation] = useState<string | null>(null);
 
   // --- Country Managers ---
   const [managers, setManagers] = useState<CountryManager[]>([]);
@@ -58,7 +69,6 @@ export function AdminSettingsPage() {
         if (res.success) {
           setSettings(res.data);
           setMaxTrusted(res.data.maxTrustedPersons);
-          setAllowedRelations(res.data.allowedRelations.join(', '));
           setMinFamilyMembers(res.data.minFamilyMembers ?? 2);
           setFamilyDiscountPercent(res.data.familyDiscountPercent ?? 15);
           setEligibilityMonths(res.data.eligibilityMonths ?? 6);
@@ -90,10 +100,20 @@ export function AdminSettingsPage() {
     setManagersLoading(false);
   }, []);
 
+  const fetchRelations = useCallback(async () => {
+    setRelationsLoading(true);
+    try {
+      const res = await adminService.getTrustedPersonRelations();
+      if (res.success) setRelations(res.data.relations);
+    } catch { /* ignore */ }
+    setRelationsLoading(false);
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'countries') fetchCountries();
     if (activeTab === 'managers') { fetchCountries(); fetchManagers(); }
-  }, [activeTab, fetchCountries, fetchManagers]);
+    if (activeTab === 'relations') fetchRelations();
+  }, [activeTab, fetchCountries, fetchManagers, fetchRelations]);
 
   const handleSaveSettings = async () => {
     setSaving(true);
@@ -101,7 +121,6 @@ export function AdminSettingsPage() {
     try {
       const res = await adminService.updateSettings({
         maxTrustedPersons: maxTrusted,
-        allowedRelations: allowedRelations.split(',').map(s => s.trim()).filter(Boolean),
         minFamilyMembers,
         familyDiscountPercent,
         eligibilityMonths,
@@ -203,10 +222,51 @@ export function AdminSettingsPage() {
   const residenceCount = countries.filter(c => c.type === 'residence').length;
   const repatriationCount = countries.filter(c => c.type === 'repatriation').length;
 
+  const handleAddRelation = async () => {
+    const val = addRelationValue.trim();
+    if (!val) return;
+    setAddRelationSaving(true);
+    setAddRelationError(null);
+    try {
+      const res = await adminService.addTrustedPersonRelation(val);
+      if (res.success) { setRelations(res.data.relations); setAddRelationValue(''); }
+      else setAddRelationError(res.message || 'Erreur');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setAddRelationError(msg || 'Erreur réseau.');
+    }
+    setAddRelationSaving(false);
+  };
+
+  const handleRenameRelation = async () => {
+    if (!renameModal) return;
+    setRenameSaving(true);
+    setRenameError(null);
+    try {
+      const res = await adminService.renameTrustedPersonRelation(renameModal.old, renameModal.newVal);
+      if (res.success) { setRelations(res.data.relations); setRenameModal(null); }
+      else setRenameError(res.message || 'Erreur');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setRenameError(msg || 'Erreur réseau.');
+    }
+    setRenameSaving(false);
+  };
+
+  const handleDeleteRelation = async (relation: string) => {
+    setDeletingRelation(relation);
+    try {
+      const res = await adminService.deleteTrustedPersonRelation(relation);
+      if (res.success) setRelations(res.data.relations);
+    } catch { /* ignore */ }
+    setDeletingRelation(null);
+  };
+
   const TABS: { key: SettingsTab; label: string; icon: typeof Settings }[] = [
     { key: 'general', label: 'Général', icon: Settings },
     { key: 'countries', label: 'Pays', icon: Globe },
     { key: 'managers', label: 'Country Managers', icon: Users },
+    { key: 'relations', label: 'Relations', icon: Heart },
   ];
 
   return (
@@ -255,17 +315,6 @@ export function AdminSettingsPage() {
                   value={String(maxTrusted)}
                   onChange={(e) => setMaxTrusted(Number(e.target.value))}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Relations autorisées (séparées par virgule)</label>
-                  <textarea
-                    value={allowedRelations}
-                    onChange={(e) => setAllowedRelations(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                    placeholder="père, mère, frère, soeur, conjoint, ami..."
-                  />
-                </div>
-
                 <div className="pt-4 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-800 mb-3">Plan familial</h4>
                   <div className="grid sm:grid-cols-3 gap-4">
@@ -522,6 +571,120 @@ export function AdminSettingsPage() {
                       disabled={countrySaving || !countryForm.name.trim()}
                     >
                       {countrySaving ? 'Enregistrement...' : editingCountry ? 'Modifier' : 'Ajouter'}
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* ==================== RELATIONS TAB ==================== */}
+      {activeTab === 'relations' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl space-y-6">
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center">
+                  <Heart size={18} className="text-pink-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Relations autorisées</h3>
+                  <p className="text-xs text-gray-400">{relations.length} relation{relations.length !== 1 ? 's' : ''} configurée{relations.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <button onClick={fetchRelations} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Actualiser">
+                {relationsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              </button>
+            </div>
+
+            {/* Add relation */}
+            <div className="flex gap-2 mb-5">
+              <input
+                value={addRelationValue}
+                onChange={(e) => setAddRelationValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddRelation()}
+                placeholder="Nouvelle relation (ex: oncle)"
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+              />
+              <Button
+                size="sm"
+                icon={addRelationSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                onClick={handleAddRelation}
+                disabled={addRelationSaving || !addRelationValue.trim()}
+              >
+                Ajouter
+              </Button>
+            </div>
+            {addRelationError && <p className="text-xs text-red-500 mb-3 -mt-3">{addRelationError}</p>}
+
+            {/* Relations list */}
+            {relationsLoading ? (
+              <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+                <Loader2 size={16} className="animate-spin" /> Chargement...
+              </div>
+            ) : relations.length === 0 ? (
+              <div className="text-center py-8">
+                <Heart size={32} className="mx-auto text-gray-200 mb-2" />
+                <p className="text-sm text-gray-400">Aucune relation configurée</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {relations.map((rel) => (
+                  <div key={rel} className="flex items-center gap-1.5 bg-primary/5 border border-primary/15 rounded-xl px-3 py-1.5 group">
+                    <span className="text-sm font-medium text-gray-700 capitalize">{rel}</span>
+                    <button
+                      onClick={() => setRenameModal({ old: rel, newVal: rel })}
+                      className="p-0.5 rounded hover:bg-primary/10 text-primary/50 hover:text-primary transition-colors"
+                      title="Renommer"
+                    >
+                      <Edit2 size={11} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRelation(rel)}
+                      disabled={deletingRelation === rel}
+                      className="p-0.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Supprimer"
+                    >
+                      {deletingRelation === rel ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Rename modal */}
+          <AnimatePresence>
+            {renameModal && (
+              <Modal isOpen={!!renameModal} onClose={() => { setRenameModal(null); setRenameError(null); }}>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Edit2 size={16} className="text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">Renommer la relation</h3>
+                      <p className="text-xs text-gray-400">Ancienne valeur : <strong>{renameModal.old}</strong></p>
+                    </div>
+                  </div>
+                  <Input
+                    label="Nouvelle valeur"
+                    value={renameModal.newVal}
+                    onChange={(e) => setRenameModal({ ...renameModal, newVal: e.target.value })}
+                    placeholder="Nouveau nom de relation"
+                  />
+                  {renameError && <p className="text-xs text-red-500">{renameError}</p>}
+                  <div className="flex gap-3 pt-2 border-t border-gray-100">
+                    <Button variant="ghost" size="sm" onClick={() => { setRenameModal(null); setRenameError(null); }}>Annuler</Button>
+                    <Button
+                      size="sm"
+                      icon={renameSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                      onClick={handleRenameRelation}
+                      disabled={renameSaving || !renameModal.newVal.trim()}
+                    >
+                      {renameSaving ? 'Enregistrement...' : 'Renommer'}
                     </Button>
                   </div>
                 </div>

@@ -33,9 +33,9 @@ export function CreateDeclarationPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = 5 * 1024 * 1024; // 5 Mo
+    const maxSize = 4 * 1024 * 1024; // 4 Mo par fichier (marge Nginx)
     if (file.size > maxSize) {
-      setError(`Le fichier ${file.name} est trop volumineux (max 5 Mo).`);
+      setError(`Le fichier ${file.name} est trop volumineux (max 4 Mo).`);
       return;
     }
 
@@ -88,7 +88,15 @@ export function CreateDeclarationPage() {
         setSuccess(true);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la création de la déclaration.');
+      const status = err.response?.status;
+      const msg = err.response?.data?.message;
+      if (status === 413) {
+        setError('Les fichiers sont trop volumineux pour le serveur. Compressez-les et réessayez (max 4 Mo par fichier).');
+      } else if (status === 401) {
+        setError('Votre session de déclaration a expiré. Veuillez recommencer le processus.');
+      } else {
+        setError(msg || 'Erreur lors de la création de la déclaration. Vérifiez les fichiers et réessayez.');
+      }
     } finally {
       setIsSubmitting(false);
     }

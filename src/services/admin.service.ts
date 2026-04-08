@@ -485,4 +485,36 @@ export const adminService = {
     const { data } = await api.put<ApiResponse<AdminReferral>>(`/admin/referrals/${id}/pay-commission`);
     return data;
   },
+
+  // ===== Trusted Person Relations =====
+
+  /** GET /api/admin/trusted-person-relations */
+  async getTrustedPersonRelations(): Promise<ApiResponse<{ relations: string[]; total: number }>> {
+    const { data } = await api.get<ApiResponse<{ relations: string[]; total: number }>>('/admin/trusted-person-relations');
+    return data;
+  },
+
+  /** POST /api/admin/trusted-person-relations */
+  async addTrustedPersonRelation(relation: string): Promise<ApiResponse<{ relations: string[]; total: number }>> {
+    const { data } = await api.post<ApiResponse<{ relations: string[]; total: number }>>('/admin/trusted-person-relations', { relation });
+    return data;
+  },
+
+  /** PUT /api/admin/trusted-person-relations */
+  async renameTrustedPersonRelation(oldRelation: string, newRelation: string): Promise<ApiResponse<{ relations: string[]; total: number }>> {
+    const { data } = await api.put<ApiResponse<{ relations: string[]; total: number }>>('/admin/trusted-person-relations', { oldRelation, newRelation });
+    return data;
+  },
+
+  /** DELETE /api/admin/trusted-person-relations */
+  async deleteTrustedPersonRelation(relation: string): Promise<ApiResponse<{ relations: string[]; total: number }>> {
+    const { data } = await api.delete<ApiResponse<{ relations: string[]; total: number }>>('/admin/trusted-person-relations', { data: { relation } });
+    return data;
+  },
+
+  /** GET /api/relations/trusted-persons (public) */
+  async getPublicTrustedPersonRelations(): Promise<ApiResponse<{ relations: string[]; total: number }>> {
+    const { data } = await api.get<ApiResponse<{ relations: string[]; total: number }>>('/relations/trusted-persons');
+    return data;
+  },
 };
